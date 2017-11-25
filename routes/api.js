@@ -28,7 +28,55 @@ var databaseUri = process.env.MONGODB_URI || configs.url;
 
 router.post('/mo-login', function(req, res) {
     console.log(req.body);
-})
+    if (!req.body.email) return res.status(401).send({
+        response: 401,
+        message: "Did not provide any information. Please try again.",
+        error: "Error"
+    });
+    //  MARK:- Step 1 & 2: Create Token using device ID and set an expiration date of 24 hours.
+    var token = jwt.sign({
+        id: req.body.id
+    }, configs.secret, {
+        expiresIn: 21600
+    });
+    
+    console.log(req.body);
+    //  MARK:- Step 3: Send Response Back
+    res.status(200).send({
+        response: 200,
+        message: "Data was returned from the database.",
+        data: {
+            auth_token: token
+        }
+    });
+    
+});
+
+router.post('/mo-register', function(req, res) {
+    var idForUseWithToken = req.body.id;
+    console.log(req.body);
+    if (!idForUseWithToken) return res.status(401).send({
+        response: 401,
+        message: "Did not provide any information. Please try again.",
+        error: "Error"
+    });
+    //  MARK:- Step 1 & 2: Create Token using device ID and set an expiration date of 24 hours.
+    var token = jwt.sign({
+        id: req.body.id
+    }, configs.secret, {
+        expiresIn: 21600
+    });
+    
+    console.log(req.body);
+    //  MARK:- Step 3: Send Response Back
+    res.status(200).send({
+        response: 200,
+        message: "Data was returned from the database.",
+        data: {
+            auth_token: token
+        }
+    });
+});
 
 router.post('/authtoken', function(req, res){
     var idForUseWithToken = req.body.id;
