@@ -128,7 +128,7 @@
                         preRegForm.reset();
                     } else {
                         var xhttp = new XMLHttpRequest();
-                        xhttp.open('POST','/preregister', true);
+                        xhttp.open('POST','/auth/preregister', true);
                         xhttp.setRequestHeader("Content-type", "application/json");
                         xhttp.onreadystatechange = function(data) {
                             console.log(data['target']);

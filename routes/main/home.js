@@ -1,8 +1,5 @@
-//  MARK:- Controls main website page renderings.
-//  1. Index Page
-//  2. Login Page
-//  3. Registration Page
-//  4. PreRegistration Page
+//  MARK:- Controls all functionality after successful login & registration
+//  1. Render Main Home Screen
 //
 //
 //
@@ -29,11 +26,8 @@ var jwtsec = process.env.JWT_SECRET || configs.secret;
 var databaseUri = process.env.MONGODB_URI || configs.url;
 
 router.get('/', function(req, res) {
-    res.status('200').render('index');
+    res.status('200').render('main');
 });
 
-router.get('/register', function(req, res){
-    res.status('200').render('register');
-});
 
 module.exports = router;

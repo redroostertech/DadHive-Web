@@ -14,10 +14,10 @@ var jwtsec = process.env.JWT_SECRET || configs.secret;
 var databaseUri = process.env.MONGODB_URI || configs.url;
 
 //  MARK:- Set up routes.
-var UserController = require('./routes/user/UserController');
 var AuthController = require('./routes/auth/AuthController');
 var MainController = require('./routes/main/index');
 var APIController = require('./routes/api');
+var HomeController = require('./routes/main/home');
 
 // Client-keys like the javascript key or the .NET key are not necessary with parse-server
 // If you wish you require them, you can set them as options in the initialization above:
@@ -34,11 +34,20 @@ app.use(express.static(__dirname + '/public'));
 //  MARK:- Use Routes
 app.use('/', MainController);
 app.use('/api/json/v1', APIController);
-app.use('/users', UserController);
 app.use('/auth', AuthController);
+app.use('/home', HomeController);
 
 //  MARK:- See if mongoDB is running & start server
 const httpServer = require('http').createServer(app);
+const io = require('socket.io')(httpServer);
+
+io.on('connection', function(socket){
+    console.log('a user is connected');
+    socket.on('disconnect', function(){
+        console.log('user disconnected');
+    });
+});
+
 Mongoose.connect(databaseUri, (error, db) => {
     if (error) return console.log(error);    
     httpServer.listen(port, function() {
@@ -46,7 +55,9 @@ Mongoose.connect(databaseUri, (error, db) => {
     });
 });
 
-// This will enable the Live Query real-time server
-ParseServer.createLiveQueryServer(httpServer);
 
-module.exports = app;
+// This will enable the Live Query real-time server
+//ParseServer.createLiveQueryServer(httpServer);
+
+module.exports.app = app;
+module.exports.io = io;

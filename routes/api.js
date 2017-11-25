@@ -1,3 +1,11 @@
+//  MARK:- Controls all functions related to the usage of the api; i.e. working with mobile app and etc.
+//  1. Retrieve authentication token
+//  2. Retrieve keys for specific services, i.e. client keys, aws S3 keys and more
+//  3. Checking a users session
+//
+//
+//
+
 const express = require('express');
 const router = express.Router();
 const bodyParser = require('body-parser');
@@ -17,6 +25,10 @@ router.use(bodyParser.json());
 var port = process.env.PORT || configs.port;
 var jwtsec = process.env.JWT_SECRET || configs.secret;
 var databaseUri = process.env.MONGODB_URI || configs.url;
+
+router.post('/mo-login', function(req, res) {
+    console.log(req.body);
+})
 
 router.post('/authtoken', function(req, res){
     var idForUseWithToken = req.body.id;

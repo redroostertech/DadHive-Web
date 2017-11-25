@@ -1,3 +1,10 @@
+//  MARK:- Controls all functions related to user authentication and initiatives.
+//  1. Login Function
+//  2. Registration Function
+//
+//
+//
+
 const express = require('express');
 const router = express.Router();
 const bodyParser = require('body-parser');
@@ -20,7 +27,7 @@ var databaseUri = process.env.MONGODB_URI || configs.url;
 
 
 //  REGISTER/CREATE a NEW USER
-router.post('/register', function(req, res) {
+router.post('/reg', function(req, res) {
     //  MARK:- Step 1: Create user
     User.create({
         facebookId: req.body.id,
@@ -57,11 +64,52 @@ router.post('/register', function(req, res) {
             }
         });
     });
-})
+});
+
+//  PREREGISTER USER
+router.post('/preregister', function(req, res){
+    console.log(req.body);
+    //  MARK:- Step 1: Create user
+    PreRegUser.create({
+        uname: req.body.uname,
+        uemail: req.body.uemail,
+        umar_status: req.body.umar_status,
+        uchildren: req.body.uchildren,
+        updatedAt: Date(),
+        createdAt: Date(),
+        ulinkedin: req.body.ulinkedin,
+        ufacebook: req.body.ufacebook,
+        uinstagram: req.body.uinstagram
+    }, function(err, user){
+        if (err) return res.status(500).send({
+            response: 500,
+            message: "There was a problem registering the user.",
+            error: err
+        });
+        
+        //  MARK:- Send Response
+        res.status(200).send({
+            response: 200,
+            message: "SUCCESS!",
+            error: null
+        });
+    });
+});
 
 //  LOGIN a RETURNING USER
-router.post('/login', function(req, res){
-    console.log(req.body);
+router.post('/log', function(req, res){
+    //  MARK:- Step 3: Create Token
+    /*var token = jwt.sign({
+        id: 'eifhoiruh38h94398h3ogi4hg3490'
+    }, jwtsec, {
+        expiresIn: 86400
+    })*/
+    
+    var token = 'eifhoiruh38h94398h3ogi4hg3490';
+    //res.redirect('/auth/' + token + '/main');
+    res.redirect('/home');
+    
+    /*console.log(req.body);
     //  MARK:- Step 1: Login User with password
     User.findOne({
         email: req.body.email,
@@ -111,9 +159,8 @@ router.post('/login', function(req, res){
                 data: {}
             });
         }
-    })
+    })*/
     
-})
-
+});
 
 module.exports = router;
