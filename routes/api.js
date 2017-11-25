@@ -35,12 +35,11 @@ router.post('/mo-login', function(req, res) {
     });
     //  MARK:- Step 1 & 2: Create Token using device ID and set an expiration date of 24 hours.
     var token = jwt.sign({
-        id: req.body.id
+        id: req.body.email
     }, configs.secret, {
         expiresIn: 21600
     });
     
-    console.log(req.body);
     //  MARK:- Step 3: Send Response Back
     res.status(200).send({
         response: 200,
