@@ -51,6 +51,28 @@ router.post('/mo-login', function(req, res) {
     
 });
 
+router.post('/mo-lookup', function(req, res) {
+    console.log(req.body);
+    var code = req.body.regcode;
+    PreRegUser.findOne({
+        uregkey: code
+    }, function(error, result){
+        if (error) return res.status(500).send({
+            response: 500,
+            message: "Failed to retrieve data.",
+            error: error
+        });
+
+        console.log(result);
+        res.status(200).send({
+            response: 200,
+            message: "SUCCESS!",
+            data: result,
+            error: null
+        });
+    });
+})
+
 router.post('/mo-register', function(req, res) {
     var idForUseWithToken = req.body.id;
     console.log(req.body);
