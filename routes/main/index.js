@@ -27,13 +27,22 @@ var PreRegUser = require('../models/PreRegUser');
 var port = process.env.PORT || configs.port;
 var jwtsec = process.env.JWT_SECRET || configs.secret;
 var databaseUri = process.env.MONGODB_URI || configs.url;
+var isLive = process.env.isLive || configs.isLive;
 
 router.get('/', function(req, res) {
     res.status('200').render('index');
 });
 
+router.get('/preregister', function(req, res){
+    res.status('200').render('preregister');
+});
+
 router.get('/register', function(req, res){
-    res.status('200').render('register');
+    if (isLive) {
+        res.status('200').render('register');
+    } else {
+        res.redirect('/');
+    }
 });
 
 module.exports = router;

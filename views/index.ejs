@@ -13,66 +13,95 @@
         <!-- Styles -->
         <link href="assets/css/core.min.css" rel="stylesheet">
         <link href="assets/css/thesaas.min.css" rel="stylesheet">
-        <link href="assets/css/style.css"   rel="stylesheet">
+        <link href="assets/css/style.css" rel="stylesheet">
 
         <!-- Favicons -->
         <link rel="apple-touch-icon" href="assets/img/apple-touch-icon.png">
         <link rel="icon" href="assets/img/favicon.png">
-    </head>
 
+    </head>
+    
     <body >
-      
+        
         <!-- Topbar -->
         <nav class="topbar topbar-inverse topbar-expand-md topbar-sticky">
             <div class="container">
         
                 <div class="topbar-left">
-                    <!--<button class="topbar-toggler">&#9776;</button>-->
-                    <a class="topbar-brand"   href="index.html">
+                    <button class="topbar-toggler">&#9776;</button>
+                    <a class="topbar-brand" href="/">
                         <img class="logo-default" src="assets/img/logo.png" alt="logo">
                         <img class="logo-inverse" src="assets/img/logo-light.png" alt="logo">
                     </a>
                 </div>
-              
-                <!--<div class="topbar-right">
-                    <form action="/auth/log" method="post">
-                        <button type="submit" class="btn btn-sm btn-outline btn- white hidden-sm-down">Login</button>
-                    </form>
-                    <button type="button" onclick="/auth/log" class="btn btn-sm btn-outline btn- white hidden-sm-down" href="">Register</button>
-                </div>-->
+
+                <div class="topbar-right">
+                    <ul class="topbar-nav nav">
+                        <li class="nav-item">
+                            <a class="nav-link active" href="#" data-toggle="modal" data-target="#loginmodal">Login</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link active" href="register">Register</a>
+                        </li>
+                    </ul>
+                </div>
             </div>
         </nav>
         <!-- END Topbar -->
-      
-        
+
+        <!-- START Login Modal -->
+        <div class="modal fade" id="loginmodal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+            <div class="modal-dialog" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="exampleModalLabel">Login</h5>
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        <form role="form" method="post" name="login-form" id="login" action="/auth/login">
+                            <div class="form-group">
+                                <label>Email</label>
+                                <input class="form-control" type="email" placeholder="Enter your email" name="uemail">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>Password</label>
+                                <input class="form-control" type="password" placeholder="Enter your password" name="upswd">
+                            </div>
+
+                            <div class="modal-footer">
+                                <button type="submit" class="btn btn-xl btn-primary btn-success">Login</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- END Login Modal -->
+
+        <!-- START CTA Section -->
         <header class="header header-inverse h-fullscreen p-0 overflow-hidden" data-overlay="1">
             <video class="bg-video" poster="assets/img/video/dadhive-bg1.mp4" autoplay loop>
                 <source src="assets/img/video/dadhive-bg1.mp4" type="video/mp4">
-                <source src="assets/img/video/workspace.webm" type="video/webm">
+                <!--<source src="assets/img/video/workspace.webm" type="video/webm">-->
             </video>
-
             <div class="container text-center">
-
                 <div class="row h-full">
                     <div class="col-12 col-lg-8 offset-lg-2 align-self-center pt-150">
                         <img src="assets/img/header-dadhive-hive.png" height="200px">
                         <br><br>
                         <p class="lead">A platform for fathers, by fathers, to hold each other accountable for the next generation.</p>
                         <br>
-                        <a class="btn btn-xl btn-primary btn-success" href="register">Pre-Register</a>
+                        <a class="btn btn-xl btn-primary btn-success" href="preregister">Pre-Registeration is Open</a>
                         <br><br>
                         <p class="fs-12"><span class="opacity-60 mr-8">Or</span> <a class="text-white mark-border" href="#dadhive-subscribe">sign up for our newsletter.</a></p>
-
                     </div>
-
                 </div>
-
             </div>
         </header>
-        <!-- END Header -->
-
-
-
+        <!-- END CTA Section -->
 
         <!-- Main container -->
         <section class="section section-inverse pb-0 overflow-hidden" style="background-image: url(assets/img/bg-father2.jpg); background-position:center; background-size:cover;" data-overlay="5" id="dadhive-subscribe">
@@ -81,18 +110,19 @@
                     <div class="col-12 col-md-12 pb-70">
                         <h2>Stay Updated</h2>
                         <p class="lead">Being a father is a beautiful thing. Despite your circumstance(s) you have a responsibility to not fold.<br>Join thousands of fathers, just like you, in holding each other accountable!</p>
-                        <br>
-                        <form class="form-inline form-glass" action="" method="post" target="_blank">
+                        <br>        
+                        <form class="form-inline form-glass" action="https://dadhive.us17.list-manage.com/subscribe/post?u=886b806a12f36a2e6bc286222&amp;id=92a9125360" method="post" target="_self" id="mc-embedded-subscribe-form" name="mc-embedded-subscribe-form" novalidate>
                             <div class="input-group">
-                                <input type="text" name="EMAIL" class="form-control" placeholder="Enter Email Address">
+                                <input type="text" name="EMAIL" class="form-control" placeholder="Enter Email Address" id="mce-EMAIL" required>
+                                <!-- real people should not fill this in and expect good things - do not remove this or risk form bot signups-->
+                                <div style="position: absolute; left: -5000px;" aria-hidden="true"><input type="text" name="b_886b806a12f36a2e6bc286222_92a9125360" tabindex="-1" value=""></div>
                                 <span class="input-group-btn">
-                                    <button class="btn btn-outline btn-white" type="button">Sign up <i class="ti-arrow-right fs-9 ml-8"></i></button>
+                                    <input class="btn btn-outline btn-white" type="submit" value="Sign up" name="subscribe" id="mc-embedded-subscribe">
                                 </span>
                             </div>
                         </form>
                     </div>
-                    <div class="col-12 col-md-4">
-                    </div>
+                    <div class="col-12 col-md-4"></div>
                 </div>
             </div>
         </section>
@@ -107,10 +137,7 @@
                             <a href="index.html"><img src="assets/img/logo.png" alt="logo"></a>
                         </p>
                     </div>
-
-                    <div class="col-12 col-lg-6">
-                    </div>
-
+                    <div class="col-12 col-lg-6"></div>
                     <div class="col-12 col-lg-3">
                         <div class="social text-center text-lg-right">
                             <a class="social-facebook" href="https://www.facebook.com/thethemeio"><i class="fa fa-facebook"></i></a>
@@ -124,12 +151,88 @@
         </footer>
         <!-- END Footer -->
 
-
-
         <!-- Scripts -->
         <script src="/assets/js/core.min.js"></script>
         <script src="/assets/js/thesaas.min.js"></script>
         <script src="/assets/js/script.js"></script>
+        <script>
+            function login() {
+                var preRegForm = document.forms["pre-registration-form"];
+                var name = preRegForm["name"].value;
+                var email = preRegForm["email"].value;
+                var mar_status = preRegForm["mar_status"].value;
+                var children = preRegForm["children"].value;
+                var linkedin = preRegForm["linkedin_usr"].value;
+                var facebook = preRegForm["facebook_usr"].value;
+                var instagram = preRegForm["instagram_usr"].value;
+                if (emailValidation(email) == true) {
+                    console.log('Validation is True');
+                
+                    if (!name || !email || !mar_status || !children) {
+                        document.getElementById("error-alert").style.display = "block";
+                        document.getElementById("success-alert").style.display = "none";
+                        document.getElementById("error-email-alert").style.display = "none";
+                        document.getElementById("error-dup-alert").style.display = "none";
+                        preRegForm.reset();
+                    } else {
+                        var xhttp = new XMLHttpRequest();
+                        xhttp.open('POST','/auth/preregister', true);
+                        xhttp.setRequestHeader("Content-type", "application/json");
+                        xhttp.onreadystatechange = function(data) {
+                            console.log(data['target']);
+                            if(xhttp.readyState == XMLHttpRequest.DONE && xhttp.status == 200) {
+                                document.getElementById("error-alert").style.display = "none";
+                                document.getElementById("success-alert").style.display = "block";
+                                document.getElementById("error-email-alert").style.display = "none";
+                                document.getElementById("error-dup-alert").style.display = "none";
+                                document.getElementById('pre-reg').reset()
+                            } else {
+                                document.getElementById("error-alert").style.display = "block";
+                                document.getElementById("success-alert").style.display = "none";
+                                document.getElementById("error-email-alert").style.display = "none";
+                                document.getElementById("error-dup-alert").style.display = "block";
+                            }
+                        } 
+                        xhttp.addEventListener('load', function(event) {
+                            console.log('Yeah! Data sent and response loaded.');
+                        });
 
+                        // Define what happens in case of error
+                        xhttp.addEventListener('error', function(event) {
+                            console.log('Oups! Something goes wrong.');
+                        });
+
+                        xhttp.send(JSON.stringify({
+                            uname: name,
+                            uemail: email,
+                            umar_status: mar_status,
+                            uchildren: children,
+                            ulinkedin: linkedin,
+                            ufacebook: facebook,
+                            uinstagram: instagram
+                        })); 
+                    }
+                } else {
+                    console.log('Validation is False');
+                    document.getElementById("error-alert").style.display = "none";
+                    document.getElementById("success-alert").style.display = "none";
+                    document.getElementById("error-email-alert").style.display = "block";
+                    document.getElementById("error-dup-alert").style.display = "none";
+                }
+            }
+            
+            function emailValidation(elementValue) { 
+                var emailPattern = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,4}$/;
+                return emailPattern.test(elementValue); 
+            } 
+
+            function dismissAlert(){
+                document.getElementById("error-alert").style.display = "none";
+                document.getElementById("success-alert").style.display = "none";
+                document.getElementById("error-email-alert").style.display = "none";
+                document.getElementById("error-dup-alert").style.display = "none";
+            }
+
+        </script>
     </body>
 </html>

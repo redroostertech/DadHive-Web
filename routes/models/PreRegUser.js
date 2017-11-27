@@ -10,8 +10,9 @@ var PreRegUserSchema = new Mongoose.Schema({
     createdAt: Date,
     ulinkedin: String,
     ufacebook: String,
-    uinstagram: String
+    uinstagram: String,
+    uregkey: String
 })
-Mongoose.model('PreRegisteredUsers', PreRegUserSchema);
+Mongoose.model('preregisteredusers', PreRegUserSchema);
 
-module.exports = Mongoose.model('PreRegisteredUsers');
+module.exports = Mongoose.model('preregisteredusers');
