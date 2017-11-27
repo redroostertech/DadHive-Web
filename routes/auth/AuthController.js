@@ -110,7 +110,14 @@ router.post('/register', function(req, res) {
 //  PREREGISTER USER
 router.post('/preregister', function(req, res){
     // MARK:- Step 1: Create user
-    var regKey = req.body.uname.split(" ")[0][0] + req.body.uname.split(" ")[1][0] + randomstring.generate(6)
+    var regKey; 
+    if (req.body.uname.split(" ").length > 1) {
+        regKey = req.body.uname.split(" ")[0][0] + req.body.uname.split(" ")[1][0] + randomstring.generate(6)
+    } else {
+        regKey = req.body.uname.split(" ")[0][0] + randomstring.generate(7)
+    }
+    
+    
     PreRegUser.create({
         uname: req.body.uname,
         uemail: req.body.uemail,
