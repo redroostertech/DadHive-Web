@@ -110,6 +110,7 @@ router.post('/register', function(req, res) {
 //  PREREGISTER USER
 router.post('/preregister', function(req, res){
     // MARK:- Step 1: Create user
+    var regKey = req.body.uname.split(" ")[0][0] + req.body.uname.split(" ")[1][0] + randomstring.generate(6)
     PreRegUser.create({
         uname: req.body.uname,
         uemail: req.body.uemail,
@@ -120,7 +121,7 @@ router.post('/preregister', function(req, res){
         ulinkedin: req.body.ulinkedin,
         ufacebook: req.body.ufacebook,
         uinstagram: req.body.uinstagram,
-        uregkey: req.body.uname.split(" ")[0][0] + req.body.uname.split(" ")[1][0] + randomstring.generate(6)
+        uregkey: regKey.toUpperCase()
     }, function(err, user){
         if (err) return res.status(500).send({
             response: 500,
@@ -131,7 +132,7 @@ router.post('/preregister', function(req, res){
             from: nodemailerUsr,
             to: req.body.uemail,
             subject: 'DadHive Pre-Registration Success!',
-            html: '<b>Welcome to the DadHive, ' + req.body.uname + '!</b><br><br>My name is Mike, founder of the DadHive and Father\'s rights advocate. Did you know that one of the leading reasons as to why fathers lose custody battles is because of the <b>fear of the common believe that men ALWAYS lose</b>?<br><br>The fear generally stems from a lack of knowledge and understanding of the laws and protocol regarding obtaining your rights as a father.<br><br>I founded the DadHive to create a platform that will serve as a resource and outlet for you to hold yourself accountable as you travel the journey called <b>fatherhood</b>. We are almost finished with the platform, but it is our hope that our platform will be of a great resource for you and anyone you know that is a father.<br><br>Your pre-registration code is <b>' + req.body.uname.split(" ")[0][0] + req.body.uname.split(" ")[1][0] + randomstring.generate(6) + '</b>. You can use this code to expidite login into the platform when it is launched.<br><br>Cheers!<br><br><b>Michael Westbrooks</b>, <i>Founder of the DadHive</i>'
+            html: '<b>Welcome to the DadHive, ' + req.body.uname + '!</b><br><br>My name is Mike, founder of the DadHive and Father\'s rights advocate. Did you know that one of the leading reasons as to why fathers lose custody battles is because of the <b>fear of the common believe that men ALWAYS lose</b>?<br><br>The fear generally stems from a lack of knowledge and understanding of the laws and protocol regarding obtaining your rights as a father.<br><br>I founded the DadHive to create a platform that will serve as a resource and outlet for you to hold yourself accountable as you travel the journey called <b>fatherhood</b>. We are almost finished with the platform, but it is our hope that our platform will be of a great resource for you and anyone you know that is a father.<br><br>Your pre-registration code is <b>' + regKey.toUpperCase() + '</b>. You can use this code to expidite login into the platform when it is launched.<br><br>Cheers!<br><br><b>Michael Westbrooks</b>, <i>Founder of the DadHive</i>'
         };
 
         transporter.sendMail(mailOptions, function(error, info){
