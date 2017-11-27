@@ -27,7 +27,7 @@ var databaseUri = process.env.MONGODB_URI || configs.url;
 var isLive = process.env.isLive || configs.isLive;
 
 router.get('/', function(req, res) {
-    if (isLive) {
+    if (isLive === true || isLive === "true") {
         res.status('200').render('main');
     } else {
         res.redirect('/');

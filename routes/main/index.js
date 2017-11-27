@@ -38,7 +38,7 @@ router.get('/preregister', function(req, res){
 });
 
 router.get('/register', function(req, res){
-    if (isLive) {
+    if (isLive === true || isLive === "true") {
         res.status('200').render('register');
     } else {
         res.redirect('/');

@@ -157,7 +157,7 @@ router.post('/preregister', function(req, res){
 
 //  LOGIN a RETURNING USER
 router.post('/login', function(req, res){
-    if (isLive) {
+    if (isLive === true || isLive === "true") {
         console.log(req.body);
         firebase.auth().signInWithEmailAndPassword(req.body.uemail, req.body.upswd).then(function() {
             firebase.auth().onAuthStateChanged(function(user) {
