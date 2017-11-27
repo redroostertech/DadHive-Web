@@ -19,7 +19,9 @@ router.use(bodyParser.urlencoded({ extended: false }));
 router.use(bodyParser.json());
 
 //  MARK:- Bring in object model(s)
-
+var PreRegUser = require('./models/PreRegUser');
+var User = require('./models/User');
+var isLive = process.env.isLive || configs.isLive;
 
 //  MARK:- Handle everything else.
 var port = process.env.PORT || configs.port;
