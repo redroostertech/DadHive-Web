@@ -28,10 +28,10 @@ app.set('view engine', 'ejs');
 // Serve static assets from the /public folder
 app.use(express.static(__dirname + '/public'));
 app.use(session({
-  cookieName: process.env.COOKIENAME || configs.cookiename,
-  secret: process.env.COOKIESEC || configs.cookiesecret,
-  duration: 60 * 60 * 1000,
-  activeDuration: 5 * 60 * 1000,
+    cookieName: process.env.COOKIENAME || configs.cookiename,
+    secret: process.env.COOKIESEC || configs.cookiesecret,
+    duration: 60 * 60 * 1000,
+    activeDuration: 5 * 60 * 1000,
 }));
 
 //  MARK:- Setup Firebase App
@@ -52,10 +52,10 @@ app.use('/auth', AuthController);
 app.use('/home', HomeController);
 
 app.all('/assets/*', function(req, res) {
-  res.sendStatus(404);
+    res.sendStatus(404);
 });
 app.all('/data/*', function(req, res) {
-  res.sendStatus(404);
+    res.sendStatus(404);
 });
 
 //  MARK:- See if mongoDB is running & start server
