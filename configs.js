@@ -1,8 +1,13 @@
-//  MARK:- This file will contain all of my keys and etc. for interacting with various services. Ensure that these keys also exist in the config settings on Heroku. process.env.Name-of-Config
-//
+'use strict';
+
+const path          = require('path');
 
 module.exports = {
-    port: 1337,
+    port: 3000,
+    base: __dirname,
+    basePublic: path.join(__dirname, '/public/'),
+    baseRoutes: path.join(__dirname, '/routes'),
+    baseViews: path.join(__dirname, '/views/'),
     url: 'mongodb://dadhive-rrtech-admin:Bigmike031991@ds119406.mlab.com:19406/heroku_b5vgf1fg',
     secret: 'wjiofn349w84h93w8hg4nilrwubg4p983h402pqh',
     nodemailusr: "thedadhive@gmail.com",
@@ -18,5 +23,8 @@ module.exports = {
     firprojectid: "dadhive-c1b2f",
     firstoragebucket: "dadhive-c1b2f.appspot.com",
     firmessagingsenderid: "259732187078",
+    s3AccessKey: '',
+    s3SecretKey: '',
+    s3bucket: '',
     isLive: false
 }
