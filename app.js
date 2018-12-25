@@ -7,7 +7,6 @@ const path          = require('path');
 const configs       = require('./configs.js');
 const firebase      = require('firebase');
 const session       = require('client-sessions');
-const router        = express.Router();
 const nodemailer    = require('nodemailer');
 const randomstring  = require('randomstring');
 const xoauth2       = require('xoauth2');
@@ -74,24 +73,27 @@ app.all('/data/*', function(req, res) {
     res.sendStatus(404);
 });
 
-
-router.get('/', function(req, res) {
-    if (isLive === true || isLive === "true") {
-        res.status('200').render('main');
-    } else {
-        res.redirect('/');
-    }
-});
-
-router.get('/', function(req, res) {
+app.get('/', function(req, res) {
     res.status('200').render('index');
 });
 
-router.get('/preregister', function(req, res){
+app.get('/privacy', function(req, res) {
+    res.json({
+        "text" : "Privacy Policy"
+    })
+});
+
+app.get('/tos', function(req, res) {
+    res.json({
+        "text" : "Terms of Service"
+    })
+});
+
+app.get('/preregister', function(req, res){
     res.status('200').render('preregister');
 });
 
-router.get('/register', function(req, res){
+app.get('/register', function(req, res){
     if (isLive === true || isLive === "true") {
         res.status('200').render('register');
     } else {
@@ -100,7 +102,7 @@ router.get('/register', function(req, res){
 });
 
 //  API
-router.post('/mo-login', function(req, res) {
+app.post('/mo-login', function(req, res) {
     console.log(req.body);
     if (!req.body.email) return res.status(401).send({
         response: 401,
@@ -125,7 +127,7 @@ router.post('/mo-login', function(req, res) {
     
 });
 
-router.post('/mo-lookup', function(req, res) {
+app.post('/mo-lookup', function(req, res) {
     console.log(req.body);
     var code = req.body.regcode;
     PreRegUser.findOne({
@@ -147,7 +149,7 @@ router.post('/mo-lookup', function(req, res) {
     });
 })
 
-router.post('/mo-register', function(req, res) {
+app.post('/mo-register', function(req, res) {
     var idForUseWithToken = req.body.id;
     console.log(req.body);
     if (!idForUseWithToken) return res.status(401).send({
@@ -173,7 +175,7 @@ router.post('/mo-register', function(req, res) {
     });
 });
 
-router.post('/authtoken', function(req, res){
+app.post('/authtoken', function(req, res){
     var idForUseWithToken = req.body.id;
     console.log(req.body);
     if (!idForUseWithToken) return res.status(401).send({
@@ -198,7 +200,7 @@ router.post('/authtoken', function(req, res){
     });
 });
 
-router.get('/retrievekeys', function(req, res){
+app.get('/retrievekeys', function(req, res){
     var token = req.headers['x-access-token'];
     if (!token) return res.status(401).send({
         response: 401,
@@ -226,7 +228,7 @@ router.get('/retrievekeys', function(req, res){
     });
 });
 
-router.get('/sessioncheck', function(req, res){
+app.get('/sessioncheck', function(req, res){
     var token = req.headers['x-access-token'];
     if (!token) return res.status(401).send({
         response: 401,
@@ -253,7 +255,7 @@ router.get('/sessioncheck', function(req, res){
 });
 
 //  AUTHCONTROLLER
-router.post('/register', function(req, res) {
+app.post('/register', function(req, res) {
     var userId = randomstring.generate(10)
     firebase.auth().createUserWithEmailAndPassword(req.body.uemail, req.body.upswd).then(function() {
         var userObj = {
@@ -309,7 +311,7 @@ router.post('/register', function(req, res) {
 });
 
 //  PREREGISTER USER
-router.post('/preregister', function(req, res){
+app.post('/preregister', function(req, res){
     // MARK:- Step 1: Create user
     var regKey; 
     if (req.body.uname.split(" ").length > 1) {
@@ -365,7 +367,7 @@ router.post('/preregister', function(req, res){
 });
 
 //  LOGIN a RETURNING USER
-router.post('/login', function(req, res){
+app.post('/login', function(req, res){
     if (isLive === true || isLive === "true") {
         console.log(req.body);
         firebase.auth().signInWithEmailAndPassword(req.body.uemail, req.body.upswd).then(function() {
@@ -391,7 +393,7 @@ router.post('/login', function(req, res){
     }
 });
 
-router.post('/regcode', function(req, res){
+app.post('/regcode', function(req, res){
     console.log(req.body);
     var code = req.body.regcode;
     PreRegUser.findOne({
@@ -415,7 +417,7 @@ router.post('/regcode', function(req, res){
 
 //  USERCONTROLLER
 //  FIND ME USERS in the DB
-router.get('/me', function(req, res){
+app.get('/me', function(req, res){
     //  MARK:- Ensure token is validated
     var token = req.headers['x-access-token'];
     if (!token) return res.status(401).send({
@@ -456,7 +458,7 @@ router.get('/me', function(req, res){
 })
 
 //  FIND ALL USERS in the DB
-router.get('/', function(req, res){
+app.get('/', function(req, res){
     User.find({}, function(err, users){
         if (err) return res.status(500).send({
             response: 500,
@@ -481,7 +483,7 @@ router.get('/', function(req, res){
 })
 
 //  MARK:- FIND a USER by QUERY in the DB
-router.post('/search', function(req, res){
+app.post('/search', function(req, res){
     var query = req.body;
     console.log("Users get query is:");
     console.log(query);
