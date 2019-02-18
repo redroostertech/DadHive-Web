@@ -54,7 +54,7 @@ function setupRealtimeDB(callback) {
 
 function setupFirestoreDB(callback) {
     firebaseFirestoreDB = admin.firestore()
-    firebaseFirestoreDB.settings = settings;
+    firebaseFirestoreDB.settings(settings);
     callback();
 }
 

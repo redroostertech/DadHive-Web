@@ -56,6 +56,9 @@ var transporter = nodemailer.createTransport({
     }
 });
 
+var apiController = require(path.join(configs.baseRoutes, '/api/v1/index.js'));
+app.use('/api/v1', apiController);
+
 app.all('/assets/*', function(req, res) {
     res.sendStatus(404);
 });
