@@ -258,9 +258,16 @@ module.exports = {
     },
 
     getUserWithId: function(id, res) {
-        retrieveFor(kUsers, id, function(success, error, document) {
-            var object = generateUserModel(document, document.data());
-            handleJSONResponse(200, error, success, { "user": object }, res);
+        checkForUser(id, function(success, error, snapshots) {
+            if (snapshots.size >= 1) {
+                var snapshotArray = new Array();
+                snapshots.forEach(function(doc) {
+                    snapshotArray.push(generateUserModel(doc, doc.data()));
+                });
+                var data = { "user": snapshotArray[0] };
+                console.log(data);
+                handleJSONResponse(200, error, success, data, res);
+            }
         });
     },
 
@@ -560,6 +567,19 @@ function createMatchObject(senderId, recipientId) {
         recipientId: recipientId,
     }
     return data
+}
+
+function checkForUser (uid, callback) {
+    var parameters = [
+        {
+            key: "uid",
+            condition: "==", 
+            value: uid
+        }
+    ]
+    retrieveWithParameters(kUsers, parameters, function(success, error, snapshots) {
+        callback(success, error, snapshots);
+    });
 }
 
 function checkForMatch (recipientId, senderId, callback) {
