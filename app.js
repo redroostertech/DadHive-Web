@@ -83,6 +83,10 @@ app.get('/tos', function(req, res) {
     })
 });
 
+app.get('/submitquestion', function(req, res){
+    res.status('200').render('submitquestion');
+});
+
 app.get('/preregister', function(req, res){
     res.status('200').render('preregister');
 });
