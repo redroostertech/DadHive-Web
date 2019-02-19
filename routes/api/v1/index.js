@@ -34,9 +34,14 @@ router.get('/test', function(req, res) {
     })
 });
 
-router.get('/user', function(req, res) {
+router.get('/getUsers', function(req, res) {
     console.log(req.body);
     dadhiveFunctions.getUsers(req, res);
+});
+
+router.post('/getUser', function(req, res) {
+    console.log(req.body);
+    dadhiveFunctions.getUserWithId(req.body.userId, res);
 });
 
 router.post('/createUser', function(req, res) {
@@ -44,9 +49,34 @@ router.post('/createUser', function(req, res) {
     dadhiveFunctions.createUser(req, res);
 });
 
-router.post('/getUser', function(req, res) {
+router.post('/createMatch', function(req, res) {
     console.log(req.body);
-    dadhiveFunctions.getUserWithId(req.body.userId, res);
+    dadhiveFunctions.createMatch(req, res);
+});
+
+router.post('/findMatch', function(req, res) {
+    console.log(req.body);
+    dadhiveFunctions.findMatch(req, res);
+});
+
+router.post('/findConversations', function(req, res) {
+    console.log(req.body);
+    dadhiveFunctions.findConversations(req, res);
+});
+
+router.post('/findConversation', function(req, res) {
+    console.log(req.body);
+    dadhiveFunctions.findConversation(req.body.conversationId, res);
+});
+
+router.post('/getMessages', function(req, res) {
+    console.log(req.body);
+    dadhiveFunctions.getMessagesInConversation(req.body.conversationId, res);
+});
+
+router.post('/sendMessage', function(req, res) {
+    console.log(req.body);
+    dadhiveFunctions.sendMessage(req, res);
 });
 
 module.exports = router;
