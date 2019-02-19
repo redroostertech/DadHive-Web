@@ -1,37 +1,37 @@
 'use strict';
 
-const express       = require('express');
-const bcrypt        = require('bcryptjs');
-const bodyParser    = require('body-parser');
-const path          = require('path');
-const configs       = require('./configs.js');
-const firebase      = require('firebase');
-const session       = require('client-sessions');
-const nodemailer    = require('nodemailer');
-const randomstring  = require('randomstring');
-const xoauth2       = require('xoauth2');
+const express           = require('express');
+const bcrypt            = require('bcryptjs');
+const bodyParser        = require('body-parser');
+const path              = require('path');
+const firebase          = require('./firebase.js');
+const aws               = require('./aws.js');
+const configs           = require('./configs');
+const fs                = require('fs');
+const session           = require('client-sessions');
+const nodemailer        = require('nodemailer');
+const randomstring      = require('randomstring');
+const xoauth2           = require('xoauth2');
 const NodeCache         = require('node-cache');
 
-var oneDay          = 86400000;
-var basePath        = configs.base;
-var basePathRoutes  = configs.baseRoutes;
-var basePathViews   = configs.baseViews;
-var port            = process.env.PORT || configs.port;
-var jwtsec          = process.env.JWT_SECRET || configs.secret;
-var nodemailerUsr   = process.env.NODEMAIL_USR || configs.nodemailusr;
-var nodemailerPass  = process.env.NODEMAIL_PSW || configs.nodemailpass;
-var nodemailerClientID = process.env.NODEMAIL_CLIENT || configs.nodemailerclientid;
+var oneDay              = configs.oneDay;
+var port                = process.env.PORT || configs.port;
+var jwtsec              = process.env.JWT_SECRET || configs.secret;
+var nodemailerUsr       = process.env.NODEMAIL_USR || configs.nodemailusr;
+var nodemailerPass      = process.env.NODEMAIL_PSW || configs.nodemailpass;
+var nodemailerClientID  = process.env.NODEMAIL_CLIENT || configs.nodemailerclientid;
 var nodemailerClientSecret = process.env.NODEMAIL_CLIENTSEC || configs.nodemailerclientsecret;
 var nodemailerClientToken = process.env.NODEMAIL_REFTOKEN || configs.nodemailerclienttoken;
+var siteTitle           = process.env.SITE_TITLE || configs.siteTitle;
 
 var app = express();
-app.use(bodyParser.urlencoded({extended:true}));
-app.use(bodyParser.json());
 app.set('views', __dirname + '/views');
 app.set('view engine', 'ejs');
-app.use(express.static(__dirname + '/public', {
+app.use(express.static(configs.basePublic, {
     maxage: oneDay * 21
 }));
+app.use(bodyParser.urlencoded({extended:true}));
+app.use(bodyParser.json());
 app.use(session({
     cookieName: process.env.COOKIENAME || configs.cookiename,
     secret: process.env.COOKIESEC || configs.cookiesecret,
@@ -56,19 +56,13 @@ var transporter = nodemailer.createTransport({
     }
 });
 
-var config = {
-    apiKey: process.env.FIRAPIKEY || configs.firapikey,
-    authDomain: process.env.FIRDOM || configs.firauthdomain,
-    databaseURL: process.env.FIRDBURL || configs.firdburl,
-    projectId: process.env.FIRPROJ || configs.firprojectid,
-    storageBucket: process.env.FIRSTOR || configs.firstoragebucket,
-    messagingSenderId: process.env.FIRMES || configs.firmessagingsenderid,
-};
-firebase.initializeApp(config);
+var apiController = require(path.join(configs.baseRoutes, '/api/v1/index.js'));
+app.use('/api/v1', apiController);
 
 app.all('/assets/*', function(req, res) {
     res.sendStatus(404);
 });
+
 app.all('/data/*', function(req, res) {
     res.sendStatus(404);
 });
@@ -87,6 +81,10 @@ app.get('/tos', function(req, res) {
     res.json({
         "text" : "Terms of Service"
     })
+});
+
+app.get('/submitquestion', function(req, res){
+    res.status('200').render('submitquestion');
 });
 
 app.get('/preregister', function(req, res){
@@ -510,12 +508,14 @@ app.post('/search', function(req, res){
     })
 })
 
+//  MARK:- Start Server
 var httpServer = require('http').createServer(app);
-httpServer.setTimeout(72000000);
-httpServer.timeout = 72000000;
+httpServer.setTimeout(configs.timeout);
+httpServer.timeout = configs.timeout;
 httpServer.agent= false;
 httpServer.listen(port, function() {
     console.log('DadHive running on port ' + port + '.');
+    firebase.setup();
 });
 
 const io = require('socket.io')(httpServer);
@@ -528,9 +528,5 @@ io.on('connection', function(socket){
 });
 
 module.exports.port = port;
-module.exports.configs = configs;
-module.exports.basePath = configs.base;
-module.exports.basePathRoutes = configs.baseRoutes;
-module.exports.basePathViews = configs.baseViews;
 module.exports.firebase = firebase;
 module.exports.cache = nodeCache;

@@ -4,11 +4,12 @@ const path          = require('path');
 
 module.exports = {
     port: 3000,
+    siteTitle: 'DadHive',
     base: __dirname,
     basePublic: path.join(__dirname, '/public/'),
-    baseRoutes: path.join(__dirname, '/routes'),
+    baseRoutes: path.join(__dirname, '/routes/'),
     baseViews: path.join(__dirname, '/views/'),
-    url: 'mongodb://dadhive-rrtech-admin:Bigmike031991@ds119406.mlab.com:19406/heroku_b5vgf1fg',
+    url: 'mongodb://dadhive-ad:Z@r@rox6@dadhive-cluster-sm-shard-00-00-1io7q.mongodb.net:27017,dadhive-cluster-sm-shard-00-01-1io7q.mongodb.net:27017,dadhive-cluster-sm-shard-00-02-1io7q.mongodb.net:27017/test?ssl=true&replicaSet=DadHive-Cluster-sm-shard-0&authSource=admin&retryWrites=true/dadhive-main-20193f0912h309',
     secret: 'wjiofn349w84h93w8hg4nilrwubg4p983h402pqh',
     nodemailusr: "thedadhive@gmail.com",
     nodemailpass: "Kountdown123",
@@ -23,8 +24,11 @@ module.exports = {
     firprojectid: "dadhive-c1b2f",
     firstoragebucket: "dadhive-c1b2f.appspot.com",
     firmessagingsenderid: "259732187078",
+    firstoragefilename: './dadhive-cc6f5-firebase-adminsdk-l7gqd-c23e8c8e82.json',
     s3AccessKey: '',
     s3SecretKey: '',
     s3bucket: '',
-    isLive: false
+    isLive: false,
+    oneDay: 86400000,
+    timeout: 72000000
 }
