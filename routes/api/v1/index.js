@@ -79,4 +79,48 @@ router.post('/sendMessage', function(req, res) {
     dadhiveFunctions.sendMessage(req, res);
 });
 
+router.post('/uploadPhoto', function(req, res) {
+
+    var form = new formidable.IncomingForm();
+    var imageData = {};
+
+    form.parse(req, function (err, fields, files) {
+        if (!err) {
+            console.log(fields);
+            var finished = _.after(parseInt(fields.imageCount), check);
+            main.firebase.firebase_storage(function(firebase) {
+                for (i = 0; i < parseInt(fields.imageCount); i++) {
+                    var file = files[fields.imageCount+(i+1)];
+                    var fileMime = mime.getType(file.name);
+                    var fileExt = mime.getExtension(file.type);
+                    var uploadTo = 'images/' + fields.userId + '/' + 'profileImage'+(i+1) + '.' + fileExt;
+                    firebase.upload(file.path, { 
+                        destination: uploadTo,
+                        public: true,
+                        metadata: {
+                            contentType: fileMime,
+                            cacheControl: "public, max-age=300"
+                        }
+                    }, function(err, file) {
+                        if (err) { 
+                            console.log('Error uploading file: ' + err);
+                            finished();
+                        } else {
+                            var count = i+1;
+                            imageData["userProfilePicture_"+count+"_url"] = dadhiveFunctions.createPublicFileURL(uploadTo); 
+                            imageData["userProfilePicture_"+count+"_meta"] = null;
+                            finished();
+                        }
+                    });
+                }
+            });
+
+            function check() {
+                dadhiveFunctions.uploadPicture(imageData, res);
+            }
+
+        }
+    });
+});
+
 module.exports = router;

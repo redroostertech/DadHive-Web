@@ -479,6 +479,18 @@ module.exports = {
         });
     },
 
+    uploadPicture: function(req, res) {
+        updateFor(kUsers, req.userId, { 
+            "userProfilePicture_1_url": req.userProfilePicture_1_url,
+            "userProfilePicture_1_meta": req.userProfilePicture_1_meta,
+            "userProfilePicture_2_url": req.userProfilePicture_2_url,
+            "userProfilePicture_2_meta": req.userProfilePicture_2_meta,
+            "userProfilePicture_3_url": req.userProfilePicture_3_url,
+            "userProfilePicture_3_meta": req.userProfilePicture_3_meta,
+        }, function (success, error, data) {
+            handleJSONResponse(200, error, success, data, res);
+        });
+    }
 }
 
 function createEmptyUserObject(email, name, uid, type) {
@@ -638,7 +650,6 @@ function checkForMessages (conversationId, callback) {
 }
 
 //  MARK:- Model Generators
-
 function generateUserModel(document, doc) {
     var data = { 
         key: document.id,
