@@ -649,6 +649,7 @@ function generateUserModel(document, doc) {
         createdAt: doc.createdAt,
         email: doc.email,
         type: doc.type,
+        dob: doc.dob,
         settings: {
             preferredCurrency: doc.type,
             notifications : doc.notifications,
