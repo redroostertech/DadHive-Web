@@ -73,7 +73,7 @@ function retrieveWithParameters(collection, parameters, callback) {
                     query.onSnapshot((querySnapshot) => {
                         var data = querySnapshot.docs.map(function(doc) {
                             var d = doc.data();
-                            d.id = d.id;
+                            d.key = doc.id;
                             return d
                         });
                         results.push(data);
@@ -86,7 +86,7 @@ function retrieveWithParameters(collection, parameters, callback) {
                     query.onSnapshot((querySnapshot) => {
                         var data = querySnapshot.docs.map(function(doc) {
                             var d = doc.data();
-                            d.id = d.id;
+                            d.key = doc.id;
                             return d
                         });
                         results.push(data);
@@ -98,7 +98,7 @@ function retrieveWithParameters(collection, parameters, callback) {
                     query.onSnapshot((querySnapshot) => {
                         var data = querySnapshot.docs.map(function(doc) {
                             var d = doc.data();
-                            d.id = d.id;
+                            d.key = doc.id;
                             return d
                         });
                         results.push(data);
@@ -111,7 +111,7 @@ function retrieveWithParameters(collection, parameters, callback) {
                     query.onSnapshot((querySnapshot) => {
                         var data = querySnapshot.docs.map(function(doc) {
                             var d = doc.data();
-                            d.id = d.id;
+                            d.key = doc.id;
                             return d
                         });
                         results.push(data);
@@ -124,7 +124,7 @@ function retrieveWithParameters(collection, parameters, callback) {
                     query.onSnapshot((querySnapshot) => {
                         var data = querySnapshot.docs.map(function(doc) {
                             var d = doc.data();
-                            d.id = d.id;
+                            d.key = doc.id;
                             return d
                         });
                         results.push(data);
@@ -704,7 +704,7 @@ function checkForMessages (conversationId, callback) {
 //  MARK:- Model Generators
 function generateUserModel(doc) {
     var data = { 
-        key: doc.id,
+        key: doc.key,
         uid: doc.uid,
         name: {
             name: doc.name
