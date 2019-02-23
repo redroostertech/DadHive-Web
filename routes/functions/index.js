@@ -688,12 +688,15 @@ function generateUserModel(document, doc) {
             {
                 url: doc.userProfilePicture_1_url,
                 meta: doc.userProfilePicture_1_meta,
+                order: 1
             }, {
                 url: doc.userProfilePicture_2_url,
                 meta: doc.userProfilePicture_2_meta,
+                order: 2
             }, {
                 url: doc.userProfilePicture_3_url,
                 meta: doc.userProfilePicture_3_meta,
+                order: 3
             }
         ],
         userInformationSection1: [
