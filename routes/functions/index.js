@@ -716,7 +716,7 @@ function generateUserModel(doc) {
         type: doc.type,
         dob: doc.dob,
         settings: {
-            preferredCurrency: doc.type,
+            preferredCurrency: doc.preferredCurrency,
             notifications : doc.notifications,
             location: {
                 addressLat: doc.addressLat,
@@ -732,9 +732,9 @@ function generateUserModel(doc) {
             },
             maxDistance: doc.maxDistance,
             ageRange: {
-                id: doc.ageRangeId,
-                min: doc.ageRangeMin,
-                max: doc.ageRangeMax
+                ageRangeId: doc.ageRangeId,
+                ageRangeMin: doc.ageRangeMin,
+                ageRangeMax: doc.ageRangeMax
             },
             initialSetup: doc.initialSetup,
         },
@@ -819,9 +819,9 @@ function generateUserModel(doc) {
                 type: "ageRange",
                 title: "Age Range",
                 info: {
-                    id: doc.ageRangeId,
-                    min: doc.ageRangeMin,
-                    max: doc.ageRangeMax
+                    ageRangeId: doc.ageRangeId,
+                    ageRangeMin: doc.ageRangeMin,
+                    ageRangeMax: doc.ageRangeMax
                 }
             }, {
                 type: "maxDistance",
