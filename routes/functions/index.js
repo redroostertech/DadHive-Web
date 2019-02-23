@@ -79,8 +79,7 @@ function retrieveWithParameters(collection, parameters, callback) {
                         results.push(data);
                         callback();
                     });
-                }
-                if (p.condition === "<=") {
+                } else if (p.condition === "<=") {
                     ref.where(p.key,"<=",p.value);
                     var query = ref.where(p.key,"==",p.value);
                     query.onSnapshot((querySnapshot) => {
@@ -92,8 +91,7 @@ function retrieveWithParameters(collection, parameters, callback) {
                         results.push(data);
                         callback();
                     });
-                }
-                if (p.condition === "==") {
+                } else if (p.condition === "==") {
                     var query = ref.where(p.key,"==",p.value);
                     query.onSnapshot((querySnapshot) => {
                         var data = querySnapshot.docs.map(function(doc) {
@@ -104,8 +102,7 @@ function retrieveWithParameters(collection, parameters, callback) {
                         results.push(data);
                         callback();
                     });
-                }
-                if (p.condition === ">") {
+                } else if (p.condition === ">") {
                     ref.where(p.key,">",p.value);
                     var query = ref.where(p.key,"==",p.value);
                     query.onSnapshot((querySnapshot) => {
@@ -117,8 +114,7 @@ function retrieveWithParameters(collection, parameters, callback) {
                         results.push(data);
                         callback();
                     });
-                }
-                if (p.condition === ">=") {
+                } else if (p.condition === ">=") {
                     ref.where(p.key,">=",p.value);
                     var query = ref.where(p.key,"==",p.value);
                     query.onSnapshot((querySnapshot) => {
@@ -130,6 +126,8 @@ function retrieveWithParameters(collection, parameters, callback) {
                         results.push(data);
                         callback();
                     });
+                } else {
+                    callback();
                 }
             }, function(err) {
                 if (err) {
