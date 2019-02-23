@@ -65,29 +65,82 @@ function retrieveWithParameters(collection, parameters, callback) {
             return callback(genericFailure, genericError, null);
         } else {
             var ref = reference.collection(collection);
-            for (param in parameters) {
-                var p = parameters[param];
+            var results = new Array;
+            async.each(parameters, function(p, callback) {
                 if (p.condition === "<") {
                     ref.where(p.key,"<",p.value);
+                    var query = ref.where(p.key,"==",p.value);
+                    query.onSnapshot((querySnapshot) => {
+                        var data = querySnapshot.docs.map(function(doc) {
+                            var d = doc.data();
+                            d.id = d.id;
+                            return d
+                        });
+                        results.push(data);
+                        callback();
+                    });
                 }
                 if (p.condition === "<=") {
                     ref.where(p.key,"<=",p.value);
+                    var query = ref.where(p.key,"==",p.value);
+                    query.onSnapshot((querySnapshot) => {
+                        var data = querySnapshot.docs.map(function(doc) {
+                            var d = doc.data();
+                            d.id = d.id;
+                            return d
+                        });
+                        results.push(data);
+                        callback();
+                    });
                 }
                 if (p.condition === "==") {
-                    ref.where(p.key,"==",p.value);
+                    var query = ref.where(p.key,"==",p.value);
+                    query.onSnapshot((querySnapshot) => {
+                        var data = querySnapshot.docs.map(function(doc) {
+                            var d = doc.data();
+                            d.id = d.id;
+                            return d
+                        });
+                        results.push(data);
+                        callback();
+                    });
                 }
                 if (p.condition === ">") {
                     ref.where(p.key,">",p.value);
+                    var query = ref.where(p.key,"==",p.value);
+                    query.onSnapshot((querySnapshot) => {
+                        var data = querySnapshot.docs.map(function(doc) {
+                            var d = doc.data();
+                            d.id = d.id;
+                            return d
+                        });
+                        results.push(data);
+                        callback();
+                    });
                 }
                 if (p.condition === ">=") {
                     ref.where(p.key,">=",p.value);
+                    var query = ref.where(p.key,"==",p.value);
+                    query.onSnapshot((querySnapshot) => {
+                        var data = querySnapshot.docs.map(function(doc) {
+                            var d = doc.data();
+                            d.id = d.id;
+                            return d
+                        });
+                        results.push(data);
+                        callback();
+                    });
                 }
-            }
-            ref.get(getOptions).then(function(snapshot) {
-                return callback(genericSuccess, null, snapshot);
-            }).catch(function (error) {
-                console.log(error);
-                return callback(genericFailure, error, null);
+            }, function(err) {
+                if (err) {
+                    return callback(genericFailure, error, null);
+                } else {
+                    if (results.length > 0) {
+                        return callback(genericSuccess, null, results);
+                    } else {
+                        return callback(genericFailure, error, null);
+                    }
+                }
             });
         }
     });
@@ -258,14 +311,13 @@ module.exports = {
     },
 
     getUserWithId: function(id, res) {
-        checkForUser(id, function(success, error, snapshots) {
-            if (snapshots.size >= 1) {
+        checkForUser(id, function(success, error, results) {
+            if (results.length >= 1) {
                 var snapshotArray = new Array();
-                snapshots.forEach(function(doc) {
-                    snapshotArray.push(generateUserModel(doc, doc.data()));
+                results.forEach(function(result) {
+                    snapshotArray.push(generateUserModel(result[0]));
                 });
                 var data = { "user": snapshotArray[0] };
-                console.log(data);
                 handleJSONResponse(200, error, success, data, res);
             }
         });
@@ -644,15 +696,15 @@ function checkForMessages (conversationId, callback) {
             value: conversationId
         }
     ]
-    retrieveWithParameters(kMessages, parameters, function(success, error, snapshots) {
-        callback(success, error, snapshots);
+    retrieveWithParameters(kMessages, parameters, function(success, error, results) {
+        callback(success, error, results);
     });
 }
 
 //  MARK:- Model Generators
-function generateUserModel(document, doc) {
+function generateUserModel(doc) {
     var data = { 
-        key: document.id,
+        key: doc.id,
         uid: doc.uid,
         name: {
             name: doc.name
