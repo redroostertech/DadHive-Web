@@ -261,24 +261,26 @@ module.exports = {
 
     signin: function(req, res) {
         main.firebase.firebase_auth(function(auth) {
-            auth.signInWithEmailAndPassword(req.body.emailaddress, req.body.password)
-            .then(function () {
+            auth.signInWithEmailAndPassword(req.body.emailaddress, req.body.password).then(function () {
                 auth.onAuthStateChanged(function (user) {
                     if (user) {
-                        retrieveWith('venue-management', user.uid, 'users', function(success, error, data) {
-                            // var venue;
-                            // if (data) { 
-                            //     venue = data;
-                            //     venue.key = id;
-                            // }
-                            res.redirect('../../../venuemanagement/twilio-view-venues');
+                        checkForUser(user.uid, function(success, error, results) {
+                            if (results.length >= 1) {
+                                var snapshotArray = new Array();
+                                results.forEach(function(result) {
+                                    snapshotArray.push(generateUserModel(result[0]));
+                                });
+                                var data = { "user": snapshotArray[0] };
+                                handleJSONResponse(200, error, success, data, res);
+                            }
                         });
                     } else {
-                        loadViewSignin(200, null, genericEmptyError, res);
+                        handleJSONResponse(200, genericEmptyError, genericFailure, null, res);
                     }
                 });
             }).catch(function (error) {
-                loadViewSignin(200, null, error, res);
+                console.log(error);
+                handleJSONResponse(200, error, genericFailure, null, res);
             });
         });
     },
@@ -717,12 +719,12 @@ function generateUserModel(doc) {
             preferredCurrency: doc.type,
             notifications : doc.notifications,
             location: {
-                latitude: doc.addressLat,
-                longitude: doc.addressLong,
-                city: doc.addressCity,
-                state: doc.addressState,
-                description: doc.addressDescription,
-                country: doc.addressCountry,
+                addressLat: doc.addressLat,
+                addressLong: doc.addressLong,
+                addressCity: doc.addressCity,
+                addressState: doc.addressState,
+                addressDescription: doc.addressDescription,
+                addressCountry: doc.addressCountry,
                 addressLine1 : doc.addressLine1,
                 addressLine2 : doc.addressLine2,
                 addressLine3 : doc.addressLine3,

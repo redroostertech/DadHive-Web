@@ -34,6 +34,11 @@ router.get('/test', function(req, res) {
     })
 });
 
+router.post('/login', function( req, res ) {
+    console.log(req.body);
+    dadhiveFunctions.signin(req, res);
+});
+
 router.get('/getUsers', function(req, res) {
     console.log(req.body);
     dadhiveFunctions.getUsers(req, res);
