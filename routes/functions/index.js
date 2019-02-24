@@ -131,7 +131,7 @@ function retrieveWithParameters(collection, parameters, callback) {
                     if (results.length > 0) {
                         callback(genericSuccess, null, results);
                     } else {
-                        callback(genericFailure, error, null);
+                        callback(genericFailure, genericError, null);
                     }
                 }
             });
