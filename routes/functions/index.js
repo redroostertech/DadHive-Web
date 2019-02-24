@@ -125,7 +125,8 @@ function retrieveWithParameters(collection, parameters, callback) {
                 }
             }, function(err) {
                 if (err) {
-                    callback(genericFailure, error, null);
+                    console.log(err);
+                    callback(genericFailure, err, null);
                 } else {
                     if (results.length > 0) {
                         callback(genericSuccess, null, results);
