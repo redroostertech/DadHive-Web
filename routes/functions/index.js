@@ -66,10 +66,9 @@ function retrieveWithParameters(collection, parameters, callback) {
         } else {
             var ref = reference.collection(collection);
             var results = new Array;
-            async.each(parameters, function(p, callback) {
+            async.each(parameters, function(p, completion) {
                 if (p.condition === "<") {
-                    ref.where(p.key,"<",p.value);
-                    var query = ref.where(p.key,"==",p.value);
+                    var query = ref.where(p.key,"<",p.value);
                     query.onSnapshot((querySnapshot) => {
                         var data = querySnapshot.docs.map(function(doc) {
                             var d = doc.data();
@@ -77,11 +76,10 @@ function retrieveWithParameters(collection, parameters, callback) {
                             return d
                         });
                         results.push(data);
-                        callback();
+                        completion();
                     });
                 } else if (p.condition === "<=") {
-                    ref.where(p.key,"<=",p.value);
-                    var query = ref.where(p.key,"==",p.value);
+                    var query = ref.where(p.key,"<=",p.value);
                     query.onSnapshot((querySnapshot) => {
                         var data = querySnapshot.docs.map(function(doc) {
                             var d = doc.data();
@@ -89,7 +87,7 @@ function retrieveWithParameters(collection, parameters, callback) {
                             return d
                         });
                         results.push(data);
-                        callback();
+                        completion();
                     });
                 } else if (p.condition === "==") {
                     var query = ref.where(p.key,"==",p.value);
@@ -100,11 +98,10 @@ function retrieveWithParameters(collection, parameters, callback) {
                             return d
                         });
                         results.push(data);
-                        callback();
+                        completion();
                     });
                 } else if (p.condition === ">") {
-                    ref.where(p.key,">",p.value);
-                    var query = ref.where(p.key,"==",p.value);
+                    var query = ref.where(p.key,">",p.value);
                     query.onSnapshot((querySnapshot) => {
                         var data = querySnapshot.docs.map(function(doc) {
                             var d = doc.data();
@@ -112,31 +109,28 @@ function retrieveWithParameters(collection, parameters, callback) {
                             return d
                         });
                         results.push(data);
-                        callback();
-                    });
-                } else if (p.condition === ">=") {
-                    ref.where(p.key,">=",p.value);
-                    var query = ref.where(p.key,"==",p.value);
-                    query.onSnapshot((querySnapshot) => {
-                        var data = querySnapshot.docs.map(function(doc) {
-                            var d = doc.data();
-                            d.key = doc.id;
-                            return d
-                        });
-                        results.push(data);
-                        callback();
+                        completion();
                     });
                 } else {
-                    callback();
+                    var query = ref.where(p.key,">=",p.value);
+                    query.onSnapshot((querySnapshot) => {
+                        var data = querySnapshot.docs.map(function(doc) {
+                            var d = doc.data();
+                            d.key = doc.id;
+                            return d
+                        });
+                        results.push(data);
+                        completion();
+                    });
                 }
             }, function(err) {
                 if (err) {
-                    return callback(genericFailure, error, null);
+                    callback(genericFailure, error, null);
                 } else {
                     if (results.length > 0) {
-                        return callback(genericSuccess, null, results);
+                        callback(genericSuccess, null, results);
                     } else {
-                        return callback(genericFailure, error, null);
+                        callback(genericFailure, error, null);
                     }
                 }
             });
