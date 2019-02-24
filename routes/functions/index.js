@@ -62,78 +62,84 @@ function retrieveAll(collection, callback) {
 function retrieveWithParameters(collection, parameters, callback) {
     main.firebase.firebase_firestore_db(function(reference) {
         if (!reference) { 
-            return callback(genericFailure, genericError, null);
+        qcallback(genericFailure, genericError, null);
         } else {
             var ref = reference.collection(collection);
             var results = new Array;
-            var finished = _.after(parseInt(parameters.length), check);
-
-            for (p in parameters) {
+            async.each(parameters, function(p, completion) {
                 if (p.condition === "<") {
                     var query = ref.where(p.key,"<",p.value);
-                    query.onSnapshot((querySnapshot) => {
+                    query.get().then(querySnapshot => {
                         var data = querySnapshot.docs.map(function(doc) {
                             var d = doc.data();
                             d.key = doc.id;
                             return d
                         });
                         results.push(data);
-                        finished();
+                        return completion();
                     });
+                    return
                 } else if (p.condition === "<=") {
                     var query = ref.where(p.key,"<=",p.value);
-                    query.onSnapshot((querySnapshot) => {
+                    query.get().then(querySnapshot => {
                         var data = querySnapshot.docs.map(function(doc) {
                             var d = doc.data();
                             d.key = doc.id;
                             return d
                         });
                         results.push(data);
-                        finished();
+                        return completion();
                     });
+                    return 
                 } else if (p.condition === "==") {
                     var query = ref.where(p.key,"==",p.value);
-                    query.onSnapshot((querySnapshot) => {
+                    query.get().then(querySnapshot => {
                         var data = querySnapshot.docs.map(function(doc) {
                             var d = doc.data();
                             d.key = doc.id;
                             return d
                         });
                         results.push(data);
-                        finished();
+                        return completion();
                     });
+                    return
                 } else if (p.condition === ">") {
                     var query = ref.where(p.key,">",p.value);
-                    query.onSnapshot((querySnapshot) => {
+                    query.get().then(querySnapshot => {
                         var data = querySnapshot.docs.map(function(doc) {
                             var d = doc.data();
                             d.key = doc.id;
                             return d
                         });
                         results.push(data);
-                        finished();
+                        return completion();
                     });
+                    return 
                 } else {
                     var query = ref.where(p.key,">=",p.value);
-                    query.onSnapshot((querySnapshot) => {
+                    query.get().then(querySnapshot => {
                         var data = querySnapshot.docs.map(function(doc) {
                             var d = doc.data();
                             d.key = doc.id;
                             return d
                         });
                         results.push(data);
-                        finished();
+                        return completion();
                     });
+                    return
                 }
-            }
-
-            function check() {
-                if (results.length > 0) {
-                    callback(genericSuccess, null, results);
+            }, function(err) {
+                if (err) {
+                    console.log(err);
+                    callback(genericFailure, err, null);
                 } else {
-                    callback(genericFailure, genericError, null);
+                    if (results.length > 0) {
+                        callback(genericSuccess, null, results);
+                    } else {
+                        callback(genericFailure, genericError, null);
+                    }
                 }
-            }
+            });
         }
     });
 }
