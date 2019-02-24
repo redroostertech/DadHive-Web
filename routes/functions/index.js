@@ -76,8 +76,8 @@ function retrieveWithParameters(collection, parameters, callback) {
                             return d
                         });
                         results.push(data);
-                        completion();
                     });
+                    completion();
                 } else if (p.condition === "<=") {
                     var query = ref.where(p.key,"<=",p.value);
                     query.onSnapshot((querySnapshot) => {
@@ -87,8 +87,8 @@ function retrieveWithParameters(collection, parameters, callback) {
                             return d
                         });
                         results.push(data);
-                        completion();
                     });
+                    completion();
                 } else if (p.condition === "==") {
                     var query = ref.where(p.key,"==",p.value);
                     query.onSnapshot((querySnapshot) => {
@@ -98,8 +98,8 @@ function retrieveWithParameters(collection, parameters, callback) {
                             return d
                         });
                         results.push(data);
-                        completion();
                     });
+                    completion();
                 } else if (p.condition === ">") {
                     var query = ref.where(p.key,">",p.value);
                     query.onSnapshot((querySnapshot) => {
@@ -109,8 +109,8 @@ function retrieveWithParameters(collection, parameters, callback) {
                             return d
                         });
                         results.push(data);
-                        completion();
                     });
+                    completion();
                 } else {
                     var query = ref.where(p.key,">=",p.value);
                     query.onSnapshot((querySnapshot) => {
@@ -120,8 +120,8 @@ function retrieveWithParameters(collection, parameters, callback) {
                             return d
                         });
                         results.push(data);
-                        completion();
                     });
+                    completion();
                 }
             }, function(err) {
                 if (err) {
