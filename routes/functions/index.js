@@ -66,7 +66,9 @@ function retrieveWithParameters(collection, parameters, callback) {
         } else {
             var ref = reference.collection(collection);
             var results = new Array;
-            async.each(parameters, function(p, completion) {
+            var finished = _.after(parseInt(parameters.length), check);
+
+            for (p in parameters) {
                 if (p.condition === "<") {
                     var query = ref.where(p.key,"<",p.value);
                     query.onSnapshot((querySnapshot) => {
@@ -76,7 +78,7 @@ function retrieveWithParameters(collection, parameters, callback) {
                             return d
                         });
                         results.push(data);
-                        completion();
+                        finished();
                     });
                 } else if (p.condition === "<=") {
                     var query = ref.where(p.key,"<=",p.value);
@@ -87,7 +89,7 @@ function retrieveWithParameters(collection, parameters, callback) {
                             return d
                         });
                         results.push(data);
-                        completion();
+                        finished();
                     });
                 } else if (p.condition === "==") {
                     var query = ref.where(p.key,"==",p.value);
@@ -98,7 +100,7 @@ function retrieveWithParameters(collection, parameters, callback) {
                             return d
                         });
                         results.push(data);
-                        completion();
+                        finished();
                     });
                 } else if (p.condition === ">") {
                     var query = ref.where(p.key,">",p.value);
@@ -109,7 +111,7 @@ function retrieveWithParameters(collection, parameters, callback) {
                             return d
                         });
                         results.push(data);
-                        completion();
+                        finished();
                     });
                 } else {
                     var query = ref.where(p.key,">=",p.value);
@@ -120,21 +122,18 @@ function retrieveWithParameters(collection, parameters, callback) {
                             return d
                         });
                         results.push(data);
-                        completion();
+                        finished();
                     });
                 }
-            }, function(err) {
-                if (err) {
-                    console.log(err);
-                    callback(genericFailure, err, null);
+            }
+
+            function check() {
+                if (results.length > 0) {
+                    callback(genericSuccess, null, results);
                 } else {
-                    if (results.length > 0) {
-                        callback(genericSuccess, null, results);
-                    } else {
-                        callback(genericFailure, genericError, null);
-                    }
+                    callback(genericFailure, genericError, null);
                 }
-            });
+            }
         }
     });
 }
