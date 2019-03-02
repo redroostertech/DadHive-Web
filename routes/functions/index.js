@@ -10,6 +10,7 @@ var genericError = { "errorCode": 200, "errorMessage": "Something went wrong." }
 var genericEmptyError = { "errorCode" : null, "errorMessage" : null };
 var genericSuccess = { "result" : true, "message" : "Request was successful" };
 var genericFailure = { "result" : false, "message" : "Request was unsuccessful" };
+var invalidPageFailure = { "errorCode": 200, "errorMessage" : "Invalid page number, should start with 1" };
 var getOptions = { source: 'cache' };
 
 var kUsers = 'users';
@@ -368,22 +369,35 @@ module.exports = {
     },
 
     getUsersMongoDB: function(req, res) {
+        var pageNo = parseInt(req.body.pageNo)
+        var size = 1
+        var query = {}
+        if (pageNo < 0 || pageNo === 0) {
+            return handleJSONResponse(200, invalidPageFailure, genericFailure, null, res);
+        }
+        query.skip = size * (pageNo - 1)
+        query.limit = size
         main.mongodb.usergeo(function(collection) {
-            collection.find({
-                userId: {
-                    $ne: req.body.userId
-                },
-                location: { 
-                    $near: {
-                        $geometry: { 
-                            type: "Point",  
-                            coordinates: [ req.body.latitude, req.body.longitude ] },
-                        $maxDistance: getMeters(req.body.maxDistance)
+            collection.find(
+                {},
+                {
+                    location: { 
+                        $near: {
+                            $geometry: { 
+                                type: "Point",  
+                                coordinates: [ req.body.latitude, req.body.longitude ] },
+                            $maxDistance: getMeters(req.body.maxDistance)
+                        }
                     }
-                }
-            }).limit(100).toArray(function(error, docs) {
+                },
+                query
+            )
+            .toArray(function(error, docs) {
+                var count = docs.length
                 var data = {
-                    "count": docs.length,
+                    "count": count,
+                    "current": pageNo,
+                    "pages": Math.ceil(count / size)
                 }
                 var success;
                 if (docs.length > 0) {
@@ -407,22 +421,25 @@ module.exports = {
                     }, function(err) {
                         if (err) {
                             console.log(err);
-                            handleJSONResponse(200, err, success, data, res);
+                            return handleJSONResponse(200, err, success, data, res);
                         } else {
                             if (results.length > 0) {
-                                data.user = results;
-                                handleJSONResponse(200, null, success, data, res);
+                                data.users = results;
+                                return handleJSONResponse(200, null, success, data, res);
                             } else {
-                                handleJSONResponse(200, genericError, genericFailure, data, res);
+                                return handleJSONResponse(200, genericError, genericFailure, data, res);
                             }
                         }
                     });
                 } else {
                     success = genericFailure;
-                    handleJSONResponse(200, error, success, data, res);
+                    return handleJSONResponse(200, error, success, data, res);
                 }
             });
         });
+        // userId: {
+        //     $ne: req.body.userId
+        // }
     },
 
     createUser: function(req, res) {
@@ -725,6 +742,7 @@ function createEmptyUserObject(email, name, uid, type) {
         uid: uid,
         createdAt: new Date(),
         type: type,
+        currentPage: 1,
         preferredCurrency: 'USD',
         notifications : false,
         maxDistance : 25.0,
@@ -885,6 +903,7 @@ function generateUserModel(doc) {
         email: doc.email,
         type: doc.type,
         dob: doc.dob,
+        currentPage: doc.currentPage,
         settings: {
             preferredCurrency: doc.preferredCurrency,
             notifications : doc.notifications,
