@@ -5,6 +5,7 @@ const bcrypt            = require('bcryptjs');
 const bodyParser        = require('body-parser');
 const path              = require('path');
 const firebase          = require('./firebase.js');
+const mongodb           = require('./mongodb.js');
 const aws               = require('./aws.js');
 const configs           = require('./configs');
 const fs                = require('fs');
@@ -516,6 +517,7 @@ httpServer.agent= false;
 httpServer.listen(port, function() {
     console.log('DadHive running on port ' + port + '.');
     firebase.setup();
+    mongodb.setup();
 });
 
 const io = require('socket.io')(httpServer);
@@ -529,4 +531,5 @@ io.on('connection', function(socket){
 
 module.exports.port = port;
 module.exports.firebase = firebase;
+module.exports.mongodb = mongodb;
 module.exports.cache = nodeCache;

@@ -128,4 +128,14 @@ router.post('/uploadPhoto', function(req, res) {
     });
 });
 
+router.post('/saveLocation', function(req, res) {
+    console.log(req.body);
+    dadhiveFunctions.saveLocationMongoDB(req, res);
+});
+
+router.post('/getNearbyUsers', function(req, res) {
+    console.log(req.body);
+    dadhiveFunctions.getUsersMongoDB(req, res);
+});
+
 module.exports = router;

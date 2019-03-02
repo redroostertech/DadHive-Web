@@ -3,6 +3,7 @@ const main          = require('../../app');
 const _             = require('underscore');
 const randomstring  = require('randomstring');
 const async         = require("async");
+const geohash       = require('latlon-geohash');
 
 
 var genericError = { "errorCode": 200, "errorMessage": "Something went wrong." };
@@ -44,6 +45,8 @@ function handleJSONResponse (code, error, success, data, res) {
         "error": error
     });
 }
+
+//  MARK:- Firebase
 
 function retrieveAll(collection, callback) {
     main.firebase.firebase_firestore_db(function(reference) {
@@ -204,6 +207,47 @@ function loadView(name, code, success, data, error, res) {
     });
 }
 
+//  MARK:- MongoDB
+function addMongoDB(data, callback) {
+    main.mongodb.usergeo(function(collection) {
+        collection.find({
+            userId: {
+                $ne: req.body.userId
+            },
+            location: { 
+                $near: {
+                    $geometry: { 
+                        type: "Point",  
+                        coordinates: [ req.body.latitude, req.body.longitude ] },
+                    $maxDistance: getMeters(req.body.maxDistance)
+                }
+            }
+        }).limit(1).toArray(function(err, docs) {
+            res.status(200).json({
+                "status": 200,
+                "success": { "result" : true, "message" : "Request was successful" },
+                "data": {
+                    "count": docs.length,
+                    "results": docs,
+                },
+                "error": err
+            });
+        });
+    });
+    main.firebase.firebase_firestore_db(function(reference) {
+        if (!reference) { 
+            return callback(genericFailure, genericError , null);
+        } else {
+            reference.collection(collection).add(data).then(function(docRef) {
+                console.log("Document written with ID: ", docRef.id);
+                return callback(genericSuccess, null, docRef);
+            }).catch(function (error) {
+                return callback(genericFailure, error, null);
+            });
+        }
+    });
+}
+
 module.exports = {
 
     signup: function(data, res) {
@@ -323,11 +367,103 @@ module.exports = {
         });
     },
 
+    getUsersMongoDB: function(req, res) {
+        main.mongodb.usergeo(function(collection) {
+            collection.find({
+                userId: {
+                    $ne: req.body.userId
+                },
+                location: { 
+                    $near: {
+                        $geometry: { 
+                            type: "Point",  
+                            coordinates: [ req.body.latitude, req.body.longitude ] },
+                        $maxDistance: getMeters(req.body.maxDistance)
+                    }
+                }
+            }).limit(100).toArray(function(error, docs) {
+                var data = {
+                    "count": docs.length,
+                }
+                var success;
+                if (docs.length > 0) {
+
+                    success = genericSuccess;
+                    var results = new Array;
+
+                    async.each(docs, function(doc, completion) {
+                        checkForUser(doc.userId, function(success, error, documents) {
+                            if (documents.length >= 1) {
+                                var snapshotArray = new Array();
+                                documents.forEach(function(document) {
+                                    snapshotArray.push(generateUserModel(document[0]));
+                                });
+                                results.push(snapshotArray[0]);
+                                return completion();
+                            } else {
+                                return completion();
+                            }
+                        });
+                    }, function(err) {
+                        if (err) {
+                            console.log(err);
+                            handleJSONResponse(200, err, success, data, res);
+                        } else {
+                            if (results.length > 0) {
+                                data.user = results;
+                                handleJSONResponse(200, null, success, data, res);
+                            } else {
+                                handleJSONResponse(200, genericError, genericFailure, data, res);
+                            }
+                        }
+                    });
+                } else {
+                    success = genericFailure;
+                    handleJSONResponse(200, error, success, data, res);
+                }
+            });
+        });
+    },
+
     createUser: function(req, res) {
         var object = createEmptyUserObject(req.body.email,req.body.name, req.body.uid,req.body.type);
         addFor(kUsers, object, function (success, error, document) {
             var data = { "userId": document.id }
             handleJSONResponse(200, error, success, data, res);
+        });
+    },
+
+    createUserMongoDB: function(req, res) {
+        var object = createEmptyUserObject(req.body.email,req.body.name, req.body.uid,req.body.type);
+        main.mongodb.usergeo(function(collection) {
+            collection.updateOne(
+                {
+                    "userId": req.body.userId
+                },{
+                    $set: {
+                        _id: req.body.userId,
+                        userId : req.body.userId,
+                        h: userGeohash,
+                        location: {
+                            type: "Point", 
+                            coordinates: [ parseFloat(req.body.latitude), parseFloat(req.body.longitude) ]
+                        }
+                    }
+                },{
+                    multi: true,
+                    upsert: true
+                }
+            , function(err, result) {
+                console.log("Inserted 3 documents into the collection");
+                console.log(result);
+                console.log(err);
+                res.status(200).json({
+                    "status": 200,
+                    "success": { "result" : true, "message" : "Request was successful" },
+                    "data": result,
+                    "error": err
+                });
+            });
         });
     },
 
@@ -542,7 +678,43 @@ module.exports = {
         }, function (success, error, data) {
             handleJSONResponse(200, error, success, data, res);
         });
-    }
+    },
+    
+    saveLocationMongoDB: function(req, res) {
+        var userGeohash = geohash.encode(req.body.latitude, req.body.longitude, 10);
+        main.mongodb.usergeo(function(collection) {
+            collection.updateOne(
+                {
+                    "userId": req.body.userId
+                },{
+                    $set: {
+                        _id: req.body.userId,
+                        userId : req.body.userId,
+                        h: userGeohash,
+                        location: {
+                            type: "Point", 
+                            coordinates: [ parseFloat(req.body.latitude), parseFloat(req.body.longitude) ]
+                        }
+                    }
+                },{
+                    multi: true,
+                    upsert: true
+                }
+            , function(error, result) {
+                var data = {
+                    "count": 0,
+                    "results": result,
+                }
+                var success;
+                if (!error) {
+                    success = genericSuccess;
+                } else {
+                    success = genericFailure;
+                }
+                handleJSONResponse(200, error, success, data, res);
+            });
+        });
+    },
 }
 
 function createEmptyUserObject(email, name, uid, type) {
@@ -857,4 +1029,9 @@ function generateMessageModel(document, doc) {
         createdAt: doc.createdAt
     }
     return data
+}
+
+//  MARK:- Useful functions
+function getMeters(fromMiles) {
+    return fromMiles * 1609.344
 }
