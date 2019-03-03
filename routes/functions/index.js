@@ -379,7 +379,6 @@ module.exports = {
         query.limit = size
         main.mongodb.usergeo(function(collection) {
             collection.find(
-                {},
                 {
                     location: { 
                         $near: {
@@ -391,16 +390,18 @@ module.exports = {
                     }
                 },
                 query
-            )
-            .toArray(function(error, docs) {
-                var count = docs.length
+            ).toArray(function(error, docs) {
+
+                var count = docs.length;
                 var data = {
-                    "count": count,
                     "current": pageNo,
+                    "next": pageNo + 1,
                     "pages": Math.ceil(count / size)
                 }
+                data.users = new Array;
                 var success;
-                if (docs.length > 0) {
+                
+                if (count > 0) {
 
                     success = genericSuccess;
                     var results = new Array;
@@ -435,6 +436,48 @@ module.exports = {
                     success = genericFailure;
                     return handleJSONResponse(200, error, success, data, res);
                 }
+                /*var success;
+                if (docs.length > 0) {
+                    success = genericSuccess;
+                    var results = new Array;
+                    async.each(docs, function(doc, completion) {
+                        checkForUser(doc.userId, function(success, error, documents) {
+                            if (documents.length >= 1) {
+                                var snapshotArray = new Array();
+                                documents.forEach(function(document) {
+                                    snapshotArray.push(generateUserModel(document[0]));
+                                });
+                                if (snapshotArray[0].mediaArray[0].url !== null) {
+                                    results.push(snapshotArray[0]);
+                                }
+                                return completion();
+                            } else {
+                                return completion();
+                            }
+                        });
+                    }, function(err) {
+                        if (err) {
+                            console.log(err);
+                            return handleJSONResponse(200, err, success, data, res);
+                        } else {
+                            var count = results.length
+                            var data = {
+                                "count": count,
+                                "current": pageNo,
+                                "pages": Math.ceil(count / size)
+                            }
+                            data.users = results;
+                            if (results.length > 0) {
+                                return handleJSONResponse(200, null, success, data, res);
+                            } else {
+                                return handleJSONResponse(200, genericError, genericFailure, data, res);
+                            }
+                        }
+                    });
+                } else {
+                    success = genericFailure;
+                    return handleJSONResponse(200, error, success, data, res);
+                }*/
             });
         });
         // userId: {
