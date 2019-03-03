@@ -946,53 +946,64 @@ function generateUserModel(doc) {
             {
                 type: "location",
                 title: "Location",
-                info: doc.addressCity + ", " + doc.addressState
+                info: doc.addressCity + ", " + doc.addressState,
+                image: "location"
             }, {
                 type: "bio",
                 title: "About Me",
-                info: doc.bio
+                info: doc.bio,
+                image: "bio"
             }, {
                 type: "companyName",
                 title: "Work",
-                info: doc.companyName
+                info: doc.companyName,
+                image: "company"
             }, {
                 type: "jobTitle",
                 title: "Job Title",
-                info: doc.jobTitle
+                info: doc.jobTitle,
+                image: "job"
             }, {
                 type: "schoolName",
                 title: "School / University",
-                info: doc.schoolName
+                info: doc.schoolName,
+                image: "school"
             }
         ],
         userInformationSection2: [
             {
                 type: "kidsNames",
                 title: "Kid's Names",
-                info: doc.kidsNames
+                info: doc.kidsNames,
+                image: "kids"
             }, {
                 type: "kidsAges",
                 title: "Kids Ages",
-                info: doc.kidsAges
+                info: doc.kidsAges,
+                image: "kids"
             }, {
                 type: "kidsBio",
                 title: "About My Kids",
-                info: doc.kidsBio
+                info: doc.kidsBio,
+                image: "kids"
             }
         ],
         userInformationSection3: [
             {
                 type: "questionOne",
                 title: doc.questionOneTitle,
-                info: doc.questionOneResponse
+                info: doc.questionOneResponse,
+                image: "question"
             }, {
                 type: "questionTwo",
                 title: doc.questionTwoTitle,
-                info: doc.questionTwoResponse
+                info: doc.questionTwoResponse,
+                image: "question"
             }, {
                 type: "questionThree",
                 title: doc.questionThreeTitle,
-                info: doc.questionThreeResponse
+                info: doc.questionThreeResponse,
+                image: "question"
             }
         ],
         userPreferencesSection: [
