@@ -944,14 +944,6 @@ function generateUserModel(doc) {
         ],
         userInformationSection1: [
             {
-                type: "name",
-                title: "Name",
-                info: doc.name
-            }, {
-                type: "dob",
-                title: "Age",
-                info: doc.dob
-            }, {
                 type: "location",
                 title: "Location",
                 info: doc.addressCity + ", " + doc.addressState
