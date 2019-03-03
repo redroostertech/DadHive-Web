@@ -772,6 +772,7 @@ function createEmptyUserObject(email, name, uid, type) {
         jobTitle: null,
         companyName: null,
         schoolName: null,
+        kidsCount: 0,
         kidsNames: null,
         kidsAges: null,
         kidsBio: null,
@@ -985,6 +986,11 @@ function generateUserModel(doc) {
                 type: "kidsBio",
                 title: "About My Kids",
                 info: doc.kidsBio,
+                image: "kids"
+            }, {
+                type: "kidsCount",
+                title: "My Kids",
+                info: doc.kidsCount,
                 image: "kids"
             }
         ],
