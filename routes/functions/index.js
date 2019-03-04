@@ -400,7 +400,7 @@ module.exports = {
                 }
                 data.users = new Array;
                 var success;
-                
+
                 if (count > 0) {
 
                     success = genericSuccess;
@@ -419,7 +419,9 @@ module.exports = {
                                 return completion();
                             }
                         });
+
                     }, function(err) {
+
                         if (err) {
                             console.log(err);
                             return handleJSONResponse(200, err, success, data, res);
@@ -431,58 +433,16 @@ module.exports = {
                                 return handleJSONResponse(200, genericError, genericFailure, data, res);
                             }
                         }
+
                     });
                 } else {
                     success = genericFailure;
                     return handleJSONResponse(200, error, success, data, res);
                 }
-                /*var success;
-                if (docs.length > 0) {
-                    success = genericSuccess;
-                    var results = new Array;
-                    async.each(docs, function(doc, completion) {
-                        checkForUser(doc.userId, function(success, error, documents) {
-                            if (documents.length >= 1) {
-                                var snapshotArray = new Array();
-                                documents.forEach(function(document) {
-                                    snapshotArray.push(generateUserModel(document[0]));
-                                });
-                                if (snapshotArray[0].mediaArray[0].url !== null) {
-                                    results.push(snapshotArray[0]);
-                                }
-                                return completion();
-                            } else {
-                                return completion();
-                            }
-                        });
-                    }, function(err) {
-                        if (err) {
-                            console.log(err);
-                            return handleJSONResponse(200, err, success, data, res);
-                        } else {
-                            var count = results.length
-                            var data = {
-                                "count": count,
-                                "current": pageNo,
-                                "pages": Math.ceil(count / size)
-                            }
-                            data.users = results;
-                            if (results.length > 0) {
-                                return handleJSONResponse(200, null, success, data, res);
-                            } else {
-                                return handleJSONResponse(200, genericError, genericFailure, data, res);
-                            }
-                        }
-                    });
-                } else {
-                    success = genericFailure;
-                    return handleJSONResponse(200, error, success, data, res);
-                }*/
+                
             });
         });
-        // userId: {
-        //     $ne: req.body.userId
-        // }
+        
     },
 
     createUser: function(req, res) {
@@ -1106,3 +1066,51 @@ function generateMessageModel(document, doc) {
 function getMeters(fromMiles) {
     return fromMiles * 1609.344
 }
+
+
+/*var success;
+if (docs.length > 0) {
+    success = genericSuccess;
+    var results = new Array;
+    async.each(docs, function(doc, completion) {
+        checkForUser(doc.userId, function(success, error, documents) {
+            if (documents.length >= 1) {
+                var snapshotArray = new Array();
+                documents.forEach(function(document) {
+                    snapshotArray.push(generateUserModel(document[0]));
+                });
+                if (snapshotArray[0].mediaArray[0].url !== null) {
+                    results.push(snapshotArray[0]);
+                }
+                return completion();
+            } else {
+                return completion();
+            }
+        });
+    }, function(err) {
+        if (err) {
+            console.log(err);
+            return handleJSONResponse(200, err, success, data, res);
+        } else {
+            var count = results.length
+            var data = {
+                "count": count,
+                "current": pageNo,
+                "pages": Math.ceil(count / size)
+            }
+            data.users = results;
+            if (results.length > 0) {
+                return handleJSONResponse(200, null, success, data, res);
+            } else {
+                return handleJSONResponse(200, genericError, genericFailure, data, res);
+            }
+        }
+    });
+} else {
+    success = genericFailure;
+    return handleJSONResponse(200, error, success, data, res);
+}*/
+
+// userId: {
+//     $ne: req.body.userId
+// }
