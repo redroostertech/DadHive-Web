@@ -384,14 +384,14 @@ module.exports = {
                         $near: {
                             $geometry: { 
                                 type: "Point",  
-                                coordinates: [ req.body.latitude, req.body.longitude ] },
-                            $maxDistance: getMeters(req.body.maxDistance)
+                                coordinates: [ parseInt(req.body.latitude), parseInt(req.body.longitude) ] },
+                            $maxDistance: getMeters(parseInt(req.body.maxDistance))
                         }
                     }
                 },
                 query
             ).toArray(function(error, docs) {
-
+                console.log(docs);
                 var count = docs.length;
                 var data = {
                     "current": pageNo,
