@@ -759,6 +759,12 @@ function createEmptyUserObject(email, name, uid, type) {
         userProfilePicture_2_meta: null,
         userProfilePicture_3_url: null,
         userProfilePicture_3_meta: null,
+        userProfilePicture_4_url: null,
+        userProfilePicture_4_meta: null,
+        userProfilePicture_5_url: null,
+        userProfilePicture_5_meta: null,
+        userProfilePicture_6_url: null,
+        userProfilePicture_6_meta: null,
         dob: null,
         addressLine1 : null,
         addressLine2 : null,
@@ -944,6 +950,18 @@ function generateUserModel(doc) {
                 url: doc.userProfilePicture_3_url,
                 meta: doc.userProfilePicture_3_meta,
                 order: 3
+            }, {
+                url: doc.userProfilePicture_4_url,
+                meta: doc.userProfilePicture_4_meta,
+                order: 4
+            }, {
+                url: doc.userProfilePicture_5_url,
+                meta: doc.userProfilePicture_5_url,
+                order: 5
+            }, {
+                url: doc.userProfilePicture_6_url,
+                meta: doc.userProfilePicture_6_meta,
+                order: 6
             }
         ],
         userInformationSection1: [
