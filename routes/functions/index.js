@@ -720,7 +720,6 @@ module.exports = {
                     "userId": req.body.userId
                 },{
                     $set: {
-                        _id: req.body.userId,
                         userId : req.body.userId,
                         h: userGeohash,
                         location: {
