@@ -370,7 +370,7 @@ module.exports = {
 
     getUsersMongoDB: function(req, res) {
         var pageNo = parseInt(req.body.pageNo)
-        var size = 1
+        var size = 10
         var query = {}
         if (pageNo < 0 || pageNo === 0) {
             return handleJSONResponse(200, invalidPageFailure, genericFailure, null, res);
