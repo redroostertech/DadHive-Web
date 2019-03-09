@@ -370,7 +370,7 @@ module.exports = {
 
     getUsersMongoDB: function(req, res) {
         var pageNo = parseInt(req.body.pageNo)
-        var size = 10
+        var size = 100
         var query = {}
         if (pageNo < 0 || pageNo === 0) {
             return handleJSONResponse(200, invalidPageFailure, genericFailure, null, res);
@@ -380,6 +380,9 @@ module.exports = {
         main.mongodb.usergeo(function(collection) {
             collection.find(
                 {
+                    userId: {
+                        $ne: req.body.userId
+                    }, 
                     location: { 
                         $near: {
                             $geometry: { 
