@@ -372,26 +372,34 @@ module.exports = {
         var pageNo = parseInt(req.body.pageNo)
         var size = 100
         var query = {}
+        var find = {
+            userId: {
+                $ne: req.body.userId
+            }, 
+            location: { 
+                $near: {
+                    $geometry: { 
+                        type: "Point",  
+                        coordinates: [ parseInt(req.body.latitude), parseInt(req.body.longitude) ] },
+                    $maxDistance: getMeters(parseInt(req.body.maxDistance))
+                }
+            }
+        }
         if (pageNo < 0 || pageNo === 0) {
             return handleJSONResponse(200, invalidPageFailure, genericFailure, null, res);
         }
         query.skip = size * (pageNo - 1)
         query.limit = size
+
+        if (typeof(req.body.lastId) !== "undefined" && req.body.lastId !== '') {
+            find.userId.$gt = req.body.lastId
+        }
+
+        console.log(find);
+        
         main.mongodb.usergeo(function(collection) {
             collection.find(
-                {
-                    userId: {
-                        $ne: req.body.userId
-                    }, 
-                    location: { 
-                        $near: {
-                            $geometry: { 
-                                type: "Point",  
-                                coordinates: [ parseInt(req.body.latitude), parseInt(req.body.longitude) ] },
-                            $maxDistance: getMeters(parseInt(req.body.maxDistance))
-                        }
-                    }
-                },
+                find,
                 query
             ).toArray(function(error, docs) {
                 console.log(docs);
@@ -414,7 +422,9 @@ module.exports = {
                             if (documents.length >= 1) {
                                 var snapshotArray = new Array();
                                 documents.forEach(function(document) {
-                                    snapshotArray.push(generateUserModel(document[0]));
+                                    var obj = document[0]
+                                    obj.docId = doc._id
+                                    snapshotArray.push(generateUserModel(obj));
                                 });
                                 results.push(snapshotArray[0]);
                                 return completion();
@@ -464,7 +474,6 @@ module.exports = {
                     "userId": req.body.userId
                 },{
                     $set: {
-                        _id: req.body.userId,
                         userId : req.body.userId,
                         h: userGeohash,
                         location: {
@@ -796,7 +805,8 @@ function createEmptyUserObject(email, name, uid, type) {
         questionThreeResponse: null,
         canSwipe: true,
         nextSwipeDate: null,
-        profileCreation : false
+        profileCreation : false,
+        lastId: null
     }
     return data
 }
@@ -909,6 +919,7 @@ function generateUserModel(doc) {
     var data = { 
         key: doc.key,
         uid: doc.uid,
+        docId: doc.docId,
         name: {
             name: doc.name
         },
@@ -1053,7 +1064,8 @@ function generateUserModel(doc) {
         ],
         canSwipe: doc.canSwipe,
         nextSwipeDate: doc.nextSwipeDate,
-        profileCreation : doc.profileCreation
+        profileCreation : doc.profileCreation,
+        lastId: doc.lastId
     }
     return data
 }
