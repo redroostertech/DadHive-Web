@@ -138,4 +138,9 @@ router.post('/getNearbyUsers', function(req, res) {
     dadhiveFunctions.getUsersMongoDB(req, res);
 });
 
+router.post('/deleteAllMongoElements', function(req, res) {
+    console.log(req.bnody);
+    dadhiveFunctions.deleteAllMongoElements(req, res);
+})
+
 module.exports = router;

@@ -380,8 +380,8 @@ module.exports = {
                 $near: {
                     $geometry: { 
                         type: "Point",  
-                        coordinates: [ parseInt(req.body.latitude), parseInt(req.body.longitude) ] },
-                    $maxDistance: getMeters(parseInt(req.body.maxDistance))
+                        coordinates: [ req.body.latitude,req.body.longitude ] },
+                    $maxDistance: getMeters(req.body.maxDistance)
                 }
             }
         }
@@ -746,6 +746,24 @@ module.exports = {
             });
         });
     },
+
+    deleteAllMongoElements: function(req, res) {
+        main.mongodb.usergeo(function(collection) {
+            collection.deleteMany(function(error, result) {
+                var data = {
+                    "count": 0,
+                    "results": result,
+                }
+                var success;
+                if (!error) {
+                    success = genericSuccess;
+                } else {
+                    success = genericFailure;
+                }
+                handleJSONResponse(200, error, success, data, res);
+            });
+        });
+    }
 }
 
 function createEmptyUserObject(email, name, uid, type) {
@@ -1064,7 +1082,8 @@ function generateUserModel(doc) {
         canSwipe: doc.canSwipe,
         nextSwipeDate: doc.nextSwipeDate,
         profileCreation : doc.profileCreation,
-        lastId: doc.lastId
+        lastId: doc.lastId,
+        matches: doc.matches,
     }
     return data
 }
