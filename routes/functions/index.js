@@ -380,8 +380,8 @@ module.exports = {
                 $near: {
                     $geometry: { 
                         type: "Point",  
-                        coordinates: [ req.body.latitude,req.body.longitude ] },
-                    $maxDistance: getMeters(req.body.maxDistance)
+                        coordinates: [ parseFloat(req.body.latitude),parseFloat(req.body.longitude) ] },
+                    $maxDistance: getMeters(parseFloat(req.body.maxDistance))
                 }
             }
         }
