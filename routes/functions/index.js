@@ -66,7 +66,7 @@ function retrieveAll(collection, callback) {
 function retrieveWithParameters(collection, parameters, callback) {
     main.firebase.firebase_firestore_db(function(reference) {
         if (!reference) { 
-        qcallback(genericFailure, genericError, null);
+            qcallback(genericFailure, genericError, null);
         } else {
             var ref = reference.collection(collection);
             var results = new Array;
@@ -79,8 +79,12 @@ function retrieveWithParameters(collection, parameters, callback) {
                             d.key = doc.id;
                             return d
                         });
-                        results.push(data);
-                        return completion();
+                        if (Object.keys(data).length > 0) {
+                            results.push(data);
+                            return completion();
+                        } else {
+                            return completion();
+                        }
                     });
                     return
                 } else if (p.condition === "<=") {
@@ -91,8 +95,12 @@ function retrieveWithParameters(collection, parameters, callback) {
                             d.key = doc.id;
                             return d
                         });
-                        results.push(data);
-                        return completion();
+                        if (Object.keys(data).length > 0) {
+                            results.push(data);
+                            return completion();
+                        } else {
+                            return completion();
+                        }
                     });
                     return 
                 } else if (p.condition === "==") {
@@ -103,8 +111,12 @@ function retrieveWithParameters(collection, parameters, callback) {
                             d.key = doc.id;
                             return d
                         });
-                        results.push(data);
-                        return completion();
+                        if (Object.keys(data).length > 0) {
+                            results.push(data);
+                            return completion();
+                        } else {
+                            return completion();
+                        }
                     });
                     return
                 } else if (p.condition === ">") {
@@ -127,8 +139,12 @@ function retrieveWithParameters(collection, parameters, callback) {
                             d.key = doc.id;
                             return d
                         });
-                        results.push(data);
-                        return completion();
+                        if (Object.keys(data).length > 0) {
+                            results.push(data);
+                            return completion();
+                        } else {
+                            return completion();
+                        }
                     });
                     return
                 }
@@ -565,30 +581,38 @@ module.exports = {
 
     findConversations: function(req, res) {
         //  Check if I already have a conversation started
-        checkForConversation(req.body.senderId, req.body.senderId, function(success, error, conversations) {
+        checkForConversation(req.body.senderId, function(success, error, conversations) {
             var conversationArray = new Array();
-            if (conversations.size >= 1) {
-                console.log(conversations.size);
-                async.each(conversations.docs, function(doc, callback) {
-                    var convo = generateConversationModel(doc, doc.data());
-                    //  Get Recipient & Sender User Object
+            if (conversations.length > 0) {
+                async.each(conversations, function(result, callback) {
+                    var doc = result[0];
                     async.parallel({
                         recipient: function(callback) {
-                            retrieveFor(kUsers, convo.recipientId, function(success, error, document) {
-                                var object = generateUserModel(document, document.data());
-                                callback(null, object);
+                            checkForUser(doc.recipientId, function(success, error, results) {
+                                if (results.length >= 1) {
+                                    var snapshotArray = new Array();
+                                    results.forEach(function(result) {
+                                        snapshotArray.push(generateUserModel(result[0]));
+                                    });
+                                    callback(null, snapshotArray[0]);
+                                }
                             });
                         },
                         sender: function(callback) {
-                            retrieveFor(kUsers, convo.senderId, function(success, error, document) {
-                                var object = generateUserModel(document, document.data());
-                                callback(null, object);
+                            checkForUser(doc.senderId, function(success, error, results) {
+                                if (results.length >= 1) {
+                                    var snapshotArray = new Array();
+                                    results.forEach(function(result) {
+                                        snapshotArray.push(generateUserModel(result[0]));
+                                    });
+                                    callback(null, snapshotArray[0]);
+                                }
                             });
                         },
                         lastMessage: function(callback) {
-                            if (typeof convo.lastMessageId === 'undefined') {
+                            if (typeof doc.lastMessageId === "undefined") {
                                 console.log("Last message does not exist");
-                                callback(null, null);
+                                callback(null, generateEmptyMessageModel());
                             } else {
                                 retrieveFor(kMessages, convo.lastMessageId, function(success, error, document) {
                                     var object = generateMessageModel(document, document.data());
@@ -597,18 +621,18 @@ module.exports = {
                             }
                         }
                     }, function(err, results) {
-                        convo.sender = results.sender;
-                        convo.recipient = results.recipient;
-                        if (typeof convo.lastMessageId !== 'undefined') {
-                            if (results.lastMessage.senderId === convo.senderId) {
+                        doc.sender = results.sender;
+                        doc.recipient = results.recipient;
+                        if (typeof doc.lastMessageId !== "undefined") {
+                            if (results.lastMessage.senderId === doc.senderId) {
                                 results.lastMessage.sender = results.sender;
                             }
-                            if (results.lastMessage.senderId === convo.recipientId) {
+                            if (results.lastMessage.senderId === doc.recipientId) {
                                 results.lastMessage.sender = results.recipient;
                             }
-                            convo.lastMessage = results.lastMessage
+                            doc.lastMessage = results.lastMessage
                         }
-                        conversationArray.push(convo);
+                        conversationArray.push(doc);
                         callback();
                     });
                 }, function(err) {
@@ -893,20 +917,12 @@ function checkForMatch (recipientId, senderId, callback) {
     });
 }
 
-function checkForConversation (recipientId, senderId, callback) {
+function checkForConversation (senderId, callback) {
     var parameters = [
         {
             key: "recipientId",
             condition: "==", 
             value: senderId
-        },{
-            key: "senderId",
-            condition: "==", 
-            value: recipientId
-        },{
-            key: "recipientId",
-            condition: "==", 
-            value: recipientId
         },{
             key: "senderId",
             condition: "==", 
@@ -1109,6 +1125,18 @@ function generateMessageModel(document, doc) {
         senderId: doc.senderId,
         message: doc.message,
         createdAt: doc.createdAt
+    }
+    return data
+}
+
+function generateEmptyMessageModel() {
+    var data = { 
+        key: "",
+        id: "",
+        conversationId: "",
+        senderId: "",
+        message: "Say hello!",
+        createdAt: ""
     }
     return data
 }
