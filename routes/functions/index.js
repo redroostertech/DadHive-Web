@@ -586,6 +586,8 @@ module.exports = {
             if (conversations.length > 0) {
                 async.each(conversations, function(result, callback) {
                     var doc = result[0];
+                    var trueRecipientId = doc.senderId === req.body.senderId ? doc.recipientId : doc.senderId;
+                    console.log(doc);
                     async.parallel({
                         recipient: function(callback) {
                             checkForUser(doc.recipientId, function(success, error, results) {
@@ -619,19 +621,23 @@ module.exports = {
                                     callback(null, object);
                                 });
                             }
+                        },
+                        trueRecipient: function(callback) {
+                            checkForUser(trueRecipientId, function(success, error, results) {
+                                if (results.length >= 1) {
+                                    var snapshotArray = new Array();
+                                    results.forEach(function(result) {
+                                        snapshotArray.push(generateUserModel(result[0]));
+                                    });
+                                    callback(null, snapshotArray[0]);
+                                }
+                            });
                         }
                     }, function(err, results) {
                         doc.sender = results.sender;
                         doc.recipient = results.recipient;
-                        if (typeof doc.lastMessageId !== "undefined") {
-                            if (results.lastMessage.senderId === doc.senderId) {
-                                results.lastMessage.sender = results.sender;
-                            }
-                            if (results.lastMessage.senderId === doc.recipientId) {
-                                results.lastMessage.sender = results.recipient;
-                            }
-                            doc.lastMessage = results.lastMessage
-                        }
+                        doc.trueRecipient = results.trueRecipient;
+                        doc.lastMessage = results.lastMessage;
                         conversationArray.push(doc);
                         callback();
                     });
