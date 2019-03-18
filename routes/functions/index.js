@@ -199,7 +199,7 @@ function addFor(collection, data, callback) {
         } else {
             reference.collection(collection).add(data).then(function(docRef) {
                 console.log("Document written with ID: ", docRef.id);
-                return callback(genericSuccess, null, docRef);
+                return callback(genericSuccess, null, docRef, docRef.id);
             }).catch(function (error) {
                 return callback(genericFailure, error, null);
             });
@@ -476,8 +476,8 @@ module.exports = {
 
     createUser: function(req, res) {
         var object = createEmptyUserObject(req.body.email,req.body.name, req.body.uid,req.body.type);
-        addFor(kUsers, object, function (success, error, document) {
-            var data = { "userId": document.id }
+        addFor(kUsers, object, function (success, error, document, id) {
+            var data = { "userId": id }
             handleJSONResponse(200, error, success, data, res);
         });
     },
@@ -542,8 +542,8 @@ module.exports = {
                                 handleJSONResponse(200, error, success, data, res);
                             } else {
                                 var object = createConversationObject(req.body.senderId, req.body.recipientId);
-                                addFor(kConversations, object, function (success, error, document) {
-                                    var data = { "conversationId": document.id }
+                                addFor(kConversations, object, function (success, error, document, id) {
+                                    var data = { "conversationId": id }
                                     handleJSONResponse(200, error, success, data, res);
                                 });
                             }
@@ -557,8 +557,8 @@ module.exports = {
             } else {
                 //  Duplicate does not exist. Create match.
                 var object = createMatchObject(req.body.senderId, req.body.recipientId);
-                addFor(kMatches, object, function (success, error, document) {
-                    var data = { "matchId": document.id }
+                addFor(kMatches, object, function (success, error, document, id) {
+                    var data = { "matchId": id }
                     handleJSONResponse(200, error, success, data, res);
                 });
             }
@@ -706,24 +706,30 @@ module.exports = {
     getMessagesInConversation: function(id, res) {
         //  Check if I already have a conversation started
         checkForMessages(id, function(success, error, messages) {
-            console.log(success);
+            console.log(messages);
             var messagesArray = new Array();
-            messages.forEach(function(doc) {
-                messagesArray.push(doc.data());
-            });
-            var data = { "messages": messagesArray};
-            if (messages.size >= 1) {
+            if (messages === null) {
+                var data = { "messages": messagesArray};
                 handleJSONResponse(200, error, success, data, res);
             } else {
-                handleJSONResponse(200, error, success, data, res);
+                messages.forEach(function(doc) {
+                    messagesArray.push(doc.data());
+                });
+                var data = { "messages": messagesArray};
+                if (messages.size >= 1) {
+                    handleJSONResponse(200, error, success, data, res);
+                } else {
+                    handleJSONResponse(200, error, success, data, res);
+                }
             }
         });
     },
 
     sendMessage: function(req, res) {
         var object = createMessageObject(req.body.conversationId, req.body.message, req.body.senderId);
-        addFor(kMessages, object, function (success, error, data) {
-            updateFor(kConversations, req.body.conversationKey, { "lastMessageId" : data.id, "updatedAt" : new Date() }, function (success, error, data) {
+        addFor(kMessages, object, function (success, error, data, id) {
+            console.log(id);
+            updateFor(kConversations, req.body.conversationKey, { "lastMessageId" : id, "updatedAt" : new Date() }, function (success, error, data) {
                 handleJSONResponse(200, error, success, data, res);
             });
         });
