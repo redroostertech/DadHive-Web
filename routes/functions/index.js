@@ -735,6 +735,12 @@ module.exports = {
         });
     },
 
+    updateConversation: function(req, res) {
+        updateFor(kConversations, req.body.conversationKey, { "lastMessageId" : req.body.messageId, "updatedAt" : new Date() }, function (success, error, data) {
+            handleJSONResponse(200, error, success, data, res);
+        });
+    },
+
     uploadPicture: function(req, res) {
         updateFor(kUsers, req.userId, { 
             "userProfilePicture_1_url": req.userProfilePicture_1_url,

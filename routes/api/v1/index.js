@@ -84,6 +84,11 @@ router.post('/sendMessage', function(req, res) {
     dadhiveFunctions.sendMessage(req, res);
 });
 
+router.post('/updateConversation', function(req, res) {
+    console.log(req.body);
+    dadhiveFunctions.updateConversation(req, res);
+});
+
 router.post('/uploadPhoto', function(req, res) {
 
     var form = new formidable.IncomingForm();
