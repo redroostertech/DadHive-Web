@@ -91,7 +91,7 @@ module.exports.firebase_firestore_db = function setupFirestore(callback) {
     callback(firebaseFirestoreDB);
 }
 module.exports.firebase_realtime_db = function setupRealtimeDB(callback) {
-    callback(firebaseObj.database());
+    callback(firebaseRealtimeDB);
 }
 module.exports.firebase_auth = function setupAuth(callback) {
     callback(firebaseObj.auth());

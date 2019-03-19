@@ -224,6 +224,102 @@ function loadView(name, code, success, data, error, res) {
     });
 }
 
+//  MARK:- Realtime DB
+function add(node, data, callback) {
+    console.log(data);
+    main.firebase.firebase_realtime_db(function(db) {
+        if (!db) { 
+            return callback(genericFailure, genericError , null);
+        } else {
+            var ref = db.ref(node);
+            var newRef = ref.push();
+            newRef.set(data).then(function() {
+                return callback(genericSuccess, null, newRef, newRef.key);
+            }).catch(function (error) {
+                console.log(error);
+                return callback(genericFailure, error, null);
+            });
+        }
+    });
+}
+
+function retrieve(node, endpoint, callback) {
+    main.firebase.firebase_realtime_db(function(reference) {
+        if (!reference) { 
+            return callback(genericFailure, genericError , null);
+        } else {
+            reference.ref(node + '/' + endpoint + '/').once('value').then(function(snapshot) {
+                if (snapshot.val() === null) {
+                    return callback(genericFailure, genericError , null);
+                } else {
+                    var data = snapshot.val();
+                    return callback(genericSuccess, null, data);
+                }
+            }).catch(function (error) {
+                return callback(genericFailure, error, null);
+            });
+        }
+    });
+}
+
+function retrieveWith(node, key, endpoint, callback) {
+    main.firebase.firebase_realtime_db(function(reference) {
+        if (!reference) { 
+            return callback(genericFailure, genericError , null);
+        } else {
+            reference.ref(node + '/' + endpoint).child(key).once('value').then(function(snapshot) {
+                if (snapshot.val() === null) {
+                    return callback(genericFailure, genericError , null);
+                } else {
+                    var data = snapshot.val();
+                    return callback(genericSuccess, null, data);
+                }
+            }).catch(function (error) {
+                return callback(genericFailure, error, null);
+            });
+        }
+    });
+}
+
+function retrieveFor(node, endpoint, orderedBy, value, callback) {
+    main.firebase.firebase_realtime_db(function(reference) {
+        if (!reference) { 
+            return callback(genericFailure, genericError , null);
+        } else {
+            reference.ref(node + '/' + endpoint).orderByChild(orderedBy).equalTo(value).once('value').then(function(snapshot) {
+                if (snapshot.val() === null) {
+                    return callback(genericFailure, genericError , null);
+                } else {
+                    var data = snapshot.val();
+                    callback(genericSuccess, null, data);
+                }
+            }).catch(function (error) {
+                return callback(genericFailure, error, null);
+            });
+        }
+    });
+}
+
+function updateFor(node, endpoint, value, callback) {
+    main.firebase.firebase_realtime_db(function(reference) {
+        if (!reference) { 
+            return callback(genericFailure, genericError , null);
+        } else {
+            reference.ref(node + '/' + endpoint).update({
+                value
+            }).then(function(snapshot) {
+                return callback(genericSuccess, null, snapshot);
+                // sendTextResponse(res, twiml, "You have booked section " + obj.sectionTitle + " at " + venue.venueName + " Thank you for the booking.");
+                // return;
+            }).catch(function (error) {
+                return callback(genericFailure, error, null);
+                // sendTextResponse(res, twiml, "There was an error with your booking. Please try again.");
+                // return;
+            }); 
+        }
+    }); 
+}
+
 //  MARK:- MongoDB
 function addMongoDB(data, callback) {
     main.mongodb.usergeo(function(collection) {
@@ -587,7 +683,6 @@ module.exports = {
                 async.each(conversations, function(result, callback) {
                     var doc = result[0];
                     var trueRecipientId = doc.senderId === req.body.senderId ? doc.recipientId : doc.senderId;
-                    console.log(doc);
                     async.parallel({
                         recipient: function(callback) {
                             checkForUser(doc.recipientId, function(success, error, results) {
@@ -616,8 +711,13 @@ module.exports = {
                                 console.log("Last message does not exist");
                                 callback(null, generateEmptyMessageModel());
                             } else {
-                                retrieveFor(kMessages, convo.lastMessageId, function(success, error, document) {
-                                    var object = generateMessageModel(document, document.data());
+                                retrieve("messages", doc.lastMessageId, function(success, error, data) {
+                                    var message;
+                                    if (data) { 
+                                        message = data;
+                                        message.id = doc.lastMessageId;
+                                    }
+                                    var object = generateMessageModel(message, message);
                                     callback(null, object);
                                 });
                             }
@@ -727,7 +827,7 @@ module.exports = {
 
     sendMessage: function(req, res) {
         var object = createMessageObject(req.body.conversationId, req.body.message, req.body.senderId);
-        addFor(kMessages, object, function (success, error, data, id) {
+        add(kMessages, object, function (success, error, data, id) {
             console.log(id);
             updateFor(kConversations, req.body.conversationKey, { "lastMessageId" : id, "updatedAt" : new Date() }, function (success, error, data) {
                 handleJSONResponse(200, error, success, data, res);
