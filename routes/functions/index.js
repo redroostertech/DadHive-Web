@@ -536,9 +536,12 @@ module.exports = {
                                 documents.forEach(function(document) {
                                     var obj = document[0]
                                     obj.docId = doc._id
-                                    var emptyImages = [obj.userProfilePicture_1_url, obj.userProfilePicture_2_url, obj.userProfilePicture_3_url, obj.userProfilePicture_4_url, obj.userProfilePicture_5_url, obj.userProfilePicture_6_url]
-                                    if (emptyImages.filter(x => x).length > 0) {
-                                        snapshotArray.push(generateUserModel(obj));
+                                    console.log(obj.ageRangeId);
+                                    if (obj.ageRangeId <= parseFloat(req.body.ageRangeId)) {
+                                        var emptyImages = [obj.userProfilePicture_1_url, obj.userProfilePicture_2_url, obj.userProfilePicture_3_url, obj.userProfilePicture_4_url, obj.userProfilePicture_5_url, obj.userProfilePicture_6_url]
+                                        if (emptyImages.filter(x => x).length > 0) {
+                                            snapshotArray.push(generateUserModel(obj));
+                                        }
                                     }
                                 });
                                 results.push(snapshotArray[0]);
@@ -923,7 +926,7 @@ function createEmptyUserObject(email, name, uid, type) {
         preferredCurrency: 'USD',
         notifications : false,
         maxDistance : 25.0,
-        ageRangeId: null,
+        ageRangeId: 4,
         ageRangeMin: null,
         ageRangeMax: null,
         initialSetup : false,
@@ -968,7 +971,8 @@ function createEmptyUserObject(email, name, uid, type) {
         canSwipe: true,
         nextSwipeDate: null,
         profileCreation : false,
-        lastId: null
+        lastId: null,
+        isBanned: false
     }
     return data
 }
