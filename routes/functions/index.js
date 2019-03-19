@@ -281,7 +281,7 @@ function retrieveWith(node, key, endpoint, callback) {
     });
 }
 
-function retrieveFor(node, endpoint, orderedBy, value, callback) {
+function retrieveAt(node, endpoint, orderedBy, value, callback) {
     main.firebase.firebase_realtime_db(function(reference) {
         if (!reference) { 
             return callback(genericFailure, genericError , null);
@@ -300,7 +300,7 @@ function retrieveFor(node, endpoint, orderedBy, value, callback) {
     });
 }
 
-function updateFor(node, endpoint, value, callback) {
+function update(node, endpoint, value, callback) {
     main.firebase.firebase_realtime_db(function(reference) {
         if (!reference) { 
             return callback(genericFailure, genericError , null);
@@ -536,7 +536,10 @@ module.exports = {
                                 documents.forEach(function(document) {
                                     var obj = document[0]
                                     obj.docId = doc._id
-                                    snapshotArray.push(generateUserModel(obj));
+                                    var emptyImages = [obj.userProfilePicture_1_url, obj.userProfilePicture_2_url, obj.userProfilePicture_3_url, obj.userProfilePicture_4_url, obj.userProfilePicture_5_url, obj.userProfilePicture_6_url]
+                                    if (emptyImages.filter(x => x).length > 0) {
+                                        snapshotArray.push(generateUserModel(obj));
+                                    }
                                 });
                                 results.push(snapshotArray[0]);
                                 return completion();
@@ -552,7 +555,7 @@ module.exports = {
                             return handleJSONResponse(200, err, success, data, res);
                         } else {
                             if (results.length > 0) {
-                                data.users = results;
+                                data.users = results.filter(x => x);
                                 return handleJSONResponse(200, null, success, data, res);
                             } else {
                                 return handleJSONResponse(200, genericError, genericFailure, data, res);
@@ -1242,7 +1245,7 @@ function generateMessageModel(document, doc) {
         conversationId: doc.conversationId,
         senderId: doc.senderId,
         message: doc.message,
-        createdAt: doc.createdAt
+        createdAt: doc.createdAt || new Date()
     }
     return data
 }
