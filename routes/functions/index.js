@@ -618,52 +618,94 @@ module.exports = {
     },
 
     createMatch: function(req, res) {
-        //  Check if I've already liked this person to prevent duplicates.
-        checkForMatch(req.body.senderId, req.body.recipientId, function(success, error, snapshots) {
-            if (snapshots.size >= 1) {
-                //  Duplicate exists.
-                //  Check if person already matched me.
-                var snapshotArray = new Array();
-                snapshots.forEach(function(doc) {
-                    snapshotArray.push(doc.data());
+        async.parallel({
+            addMatch: function(callback) {
+                main.mongodb.actioncol(function(collection) {
+                    collection.updateOne(
+                        {
+                            "_id": req.body.senderId
+                        },{
+                            $set: {
+                                _id: req.body.senderId,
+                                createdAt: new Date(),
+                                blocked: []
+                            }, 
+                            $addToSet: { matches: req.body.recipientId }
+                        },{
+                            multi: true,
+                            upsert: true
+                        }
+                    , function(err, result) {
+                        callback(err, result);
+                    });
                 });
-                checkForMatch(req.body.recipientId, req.body.senderId, function(success, error, matches) {
-                    console.log(success);
-                    if (matches.size >= 1) {
-                        console.log("Match exists");
-                        //  Check if I already have a conversation started
-                        checkForConversation(req.body.recipientId, req.body.senderId, function(success, error, conversations) {
-                            console.log(success);
-                            var conversationArray = new Array();
-                            conversations.forEach(function(doc) {
-                                conversationArray.push(doc.data());
+                
+            },
+            checkForMatch: function(callback) {
+                var query = {}
+                var find = {
+                    _id: {
+                        $eq: req.body.recipientId
+                    }, 
+                    matches: {
+                        $in: [req.body.senderId]
+                    },
+                    blocked: {
+                        $nin: [req.body.senderId]
+                    }
+                }
+                main.mongodb.actioncol(function(collection) {
+                    collection.find(
+                        find,
+                        query
+                    ).toArray(function(err, docs) {
+                        var data = {};
+                        var results = new Array;
+                        async.each(docs, function(doc, completion) {
+                            checkForUser(doc.userId, function(success, error, documents) {
+                                if (documents.length >= 1) {
+                                    var snapshotArray = new Array();
+                                    documents.forEach(function(document) {
+                                        var obj = document[0]
+                                        obj.docId = doc._id
+                                        console.log(obj.ageRangeId);
+                                        if (obj.ageRangeId <= parseFloat(req.body.ageRangeId)) {
+                                            var emptyImages = [obj.userProfilePicture_1_url, obj.userProfilePicture_2_url, obj.userProfilePicture_3_url, obj.userProfilePicture_4_url, obj.userProfilePicture_5_url, obj.userProfilePicture_6_url]
+                                            if (emptyImages.filter(x => x).length > 0) {
+                                                snapshotArray.push(generateUserModel(obj));
+                                            }
+                                        }
+                                    });
+                                    results.push(snapshotArray[0]);
+                                    return completion();
+                                } else {
+                                    return completion();
+                                }
                             });
-                            if (conversations.size >= 1) {
-                                console.log("Conversation already exists.");
-                                var data = { "conversation": conversationArray[0], "match": snapshotArray[0]};
-                                handleJSONResponse(200, error, success, data, res);
+                        }, function(err) {
+                            if (err) {
+                                console.log(err);
+                                callback(err, null);
                             } else {
-                                var object = createConversationObject(req.body.senderId, req.body.recipientId);
-                                addFor(kConversations, object, function (success, error, document, id) {
-                                    var data = { "conversationId": id }
-                                    handleJSONResponse(200, error, success, data, res);
-                                });
+                                if (results.length > 0) {
+                                    data.users = results.filter(x => x);
+                                    callback(err, data);
+                                } else {
+                                    callback(err, null);
+                                }
                             }
                         });
-                    } else {
-                        console.log("No match exists");
-                        var data = { "match": results[0] };
-                        handleJSONResponse(200, error, success, data, res);
-                    }
+                        callback(err, docs);
+                    });
                 });
-            } else {
-                //  Duplicate does not exist. Create match.
-                var object = createMatchObject(req.body.senderId, req.body.recipientId);
-                addFor(kMatches, object, function (success, error, document, id) {
-                    var data = { "matchId": id }
-                    handleJSONResponse(200, error, success, data, res);
-                });
-            }
+            },
+        }, function(err, results) {
+            console.log("Add match \n\n");
+            console.log(results.addMatch);
+            console.log("Check for match \n\n");
+            console.log(results.checkForMatch);
+            var data = { "user": results.checkForMatch }
+            handleJSONResponse(200, err, genericSuccess, data, res);
         });
     },
 
@@ -926,9 +968,9 @@ function createEmptyUserObject(email, name, uid, type) {
         preferredCurrency: 'USD',
         notifications : false,
         maxDistance : 25.0,
-        ageRangeId: 4,
-        ageRangeMin: null,
-        ageRangeMax: null,
+        ageRangeId: 0,
+        ageRangeMin: 2,
+        ageRangeMax: 4,
         initialSetup : false,
         userProfilePicture_1_url: null,
         userProfilePicture_1_meta: null,
@@ -972,7 +1014,10 @@ function createEmptyUserObject(email, name, uid, type) {
         nextSwipeDate: null,
         profileCreation : false,
         lastId: null,
-        isBanned: false
+        isBanned: false,
+        isPremium: false,
+        matchedUsers: new Array,
+        blockedUsers: newArray
     }
     return data
 }
@@ -1003,11 +1048,10 @@ function createConversationObject(senderId, recipientId) {
 
 function createMatchObject(senderId, recipientId) {
     var data = {
-        id: randomstring.generate(25),
+        _id: senderId,
         createdAt: new Date(),
-        updatedAt: new Date(),
-        senderId: senderId,
-        recipientId: recipientId,
+        matches: [recipientId],
+        blocked: []
     }
     return data
 }

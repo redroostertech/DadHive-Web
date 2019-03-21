@@ -51,3 +51,9 @@ module.exports.usergeo = function returnMongoUserGeoDB(callback) {
     var collection = db.collection('user-geo');
     callback(collection);
 }
+
+module.exports.actioncol = function returnMongoUserGeoDB(callback) {
+    var db = moClient.db('dadhive-main-20193f0912h309');
+    var collection = db.collection('action');
+    callback(collection);
+}
