@@ -514,7 +514,7 @@ module.exports = {
                 find,
                 query
             ).toArray(function(error, docs) {
-                console.log(docs);
+                // console.log(docs);
                 var count = docs.length;
                 var data = {
                     "current": pageNo,
@@ -527,38 +527,44 @@ module.exports = {
                 if (count > 0) {
 
                     success = genericSuccess;
-                    var results = new Array;
+                    var finalData = new Array;
 
                     async.each(docs, function(doc, completion) {
-                        checkForUser(doc.userId, function(success, error, documents) {
-                            if (documents.length >= 1) {
-                                var snapshotArray = new Array();
-                                documents.forEach(function(document) {
-                                    var obj = document[0]
-                                    obj.docId = doc._id
-                                    console.log(obj.ageRangeId);
-                                    if (obj.ageRangeId <= parseFloat(req.body.ageRangeId)) {
-                                        var emptyImages = [obj.userProfilePicture_1_url, obj.userProfilePicture_2_url, obj.userProfilePicture_3_url, obj.userProfilePicture_4_url, obj.userProfilePicture_5_url, obj.userProfilePicture_6_url]
-                                        if (emptyImages.filter(x => x).length > 0) {
-                                            snapshotArray.push(generateUserModel(obj));
+                        checkForUser(doc.userId, function(success, error, results) {
+                            if (results !== null) {
+                                var documents = results[0];
+                                if (documents.length >= 1 || documents !== null) {
+                                    var snapshotArray = new Array();
+                                    documents.forEach(function(document) {
+                                        var obj = document
+                                        obj.docId = doc._id
+                                        if (obj.ageRangeId <= parseFloat(req.body.ageRangeId)) {
+                                            var emptyImages = [obj.userProfilePicture_1_url, obj.userProfilePicture_2_url, obj.userProfilePicture_3_url, obj.userProfilePicture_4_url, obj.userProfilePicture_5_url, obj.userProfilePicture_6_url]
+                                            if (emptyImages.filter(x => x).length > 0) {
+                                                snapshotArray.push(generateUserModel(obj));
+                                            }
                                         }
+                                    });
+                                    if (snapshotArray !== null) {
+                                        // console.log(snapshotArray[0]);
+                                        finalData.push(snapshotArray[0]);
                                     }
-                                });
-                                results.push(snapshotArray[0]);
-                                return completion();
+                                    return completion();
+                                } else {
+                                    return completion();
+                                }
                             } else {
                                 return completion();
                             }
                         });
-
                     }, function(err) {
-
+                        console.log(finalData);
                         if (err) {
                             console.log(err);
                             return handleJSONResponse(200, err, success, data, res);
                         } else {
-                            if (results.length > 0) {
-                                data.users = results.filter(x => x);
+                            if (finalData.length > 0 || finalData !== null) {
+                                data.users = finalData.filter(x => x);
                                 return handleJSONResponse(200, null, success, data, res);
                             } else {
                                 return handleJSONResponse(200, genericError, genericFailure, data, res);
