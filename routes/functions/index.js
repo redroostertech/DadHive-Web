@@ -1017,7 +1017,7 @@ function createEmptyUserObject(email, name, uid, type) {
         isBanned: false,
         isPremium: false,
         matchedUsers: new Array,
-        blockedUsers: newArray
+        blockedUsers: new Array
     }
     return data
 }
