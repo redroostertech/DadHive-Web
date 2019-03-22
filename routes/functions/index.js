@@ -668,20 +668,20 @@ module.exports = {
                         var data = {};
                         var results = new Array;
                         async.each(docs, function(doc, completion) {
-                            checkForUser(doc.userId, function(success, error, documents) {
+                            checkForUser(doc._id, function(success, error, documents) {
                                 if (documents.length >= 1) {
                                     var snapshotArray = new Array();
                                     documents.forEach(function(document) {
                                         var obj = document[0]
                                         obj.docId = doc._id
-                                        console.log(obj.ageRangeId);
-                                        if (obj.ageRangeId <= parseFloat(req.body.ageRangeId)) {
-                                            var emptyImages = [obj.userProfilePicture_1_url, obj.userProfilePicture_2_url, obj.userProfilePicture_3_url, obj.userProfilePicture_4_url, obj.userProfilePicture_5_url, obj.userProfilePicture_6_url]
-                                            if (emptyImages.filter(x => x).length > 0) {
+                                        // if (obj.ageRangeId <= parseFloat(req.body.ageRangeId)) {
+                                        //     var emptyImages = [obj.userProfilePicture_1_url, obj.userProfilePicture_2_url, obj.userProfilePicture_3_url, obj.userProfilePicture_4_url, obj.userProfilePicture_5_url, obj.userProfilePicture_6_url]
+                                        //     if (emptyImages.filter(x => x).length > 0) {
                                                 snapshotArray.push(generateUserModel(obj));
-                                            }
-                                        }
+                                        //     }
+                                        // }
                                     });
+                                    console.log(snapshotArray[0]);
                                     results.push(snapshotArray[0]);
                                     return completion();
                                 } else {
@@ -693,6 +693,7 @@ module.exports = {
                                 console.log(err);
                                 callback(err, null);
                             } else {
+                                console.log(results);
                                 if (results.length > 0) {
                                     data.users = results.filter(x => x);
                                     callback(err, data);
@@ -705,11 +706,9 @@ module.exports = {
                 });
             },
         }, function(err, results) {
-            console.log("Add match \n\n");
-            console.log(results.addMatch);
             console.log("Check for match \n\n");
             console.log(results.checkForMatch);
-            var data = { "user": results.checkForMatch }
+            var data = results.checkForMatch;
             handleJSONResponse(200, err, genericSuccess, data, res);
         });
     },
