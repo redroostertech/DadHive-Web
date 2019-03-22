@@ -698,7 +698,8 @@ module.exports = {
                                     data.users = results.filter(x => x);
                                     callback(err, data);
                                 } else {
-                                    callback(err, null);
+                                    data.users = [];
+                                    callback(err, data);
                                 }
                             }
                         });
