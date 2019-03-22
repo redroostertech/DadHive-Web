@@ -701,7 +701,6 @@ module.exports = {
                                 }
                             }
                         });
-                        callback(err, docs);
                     });
                 });
             },
