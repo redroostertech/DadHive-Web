@@ -363,53 +363,23 @@ function addMongoDB(data, callback) {
 
 module.exports = {
 
-    signup: function(data, res) {
+    signup: function(req, res, callback) {
+        console.log(req.body);
         main.firebase.firebase_auth(function(auth) {
-            auth.createUserWithEmailAndPassword(data.emailaddress, data.confirmpassword).then(function () {
+            auth.createUserWithEmailAndPassword(req.body.email, req.body.password).then(function () {
                 auth.onAuthStateChanged(function (user) {
                     if (user) {
-                        main.firebase.firebase_firestore_db(function(reference) {
-                            if (!reference) { 
-                                handleError(200, "No reference available", res);
-                            } else {
-                                reference.ref('venue-management/phonenumbers/').orderByChild("number").equalTo('+' + data.phone).once('value').then(function(snapshot) {
-                                    if (snapshot.val() !== null) {
-                                        return handleError(200, "Phone number already exists. Please use another email/phone combo.", res);
-                                    }
-                                    var userRef = reference.ref('venue-management/users');
-                                    var newUserRef = userRef.push();
-                                    newUserRef.set(data).then(function(ref) {
-                                        var phoneRef = reference.ref('venue-management/phonenumbers');
-                                        var newPhoneRef = phoneRef.push();
-                                        newPhoneRef.set({ 'number': data.phone }).then(function(ref) {
-                                            main.twilioClient.messages.create({
-                                                body: "Thank you for joining venue management.",
-                                                to: data.phone,
-                                                from: '+19292035343'
-                                            })
-                                            .then((message) => validateTwilioResponse(message, res))
-                                            .catch(error => handleError(200, error, res));
-                                        }).catch(function (error) {
-                                            var errorCode = error.code;
-                                            var errorMessage = error.message;
-                                            handleError(errorCode, errorMessage, res);
-                                        });
-                                    }).catch(function (error) {
-                                        var errorCode = error.code;
-                                        var errorMessage = error.message;
-                                        handleError(errorCode, errorMessage, res);
-                                    });
-                                });
-                            }
-                        });
+                        callback(user.uid, req.body);
                     } else {
-                        handleError(errorCode, "Something went wrong. Please try again.", res);
+                        var error = {
+                            "code": 200,
+                            "message": "Something went wrong. Please try again later."
+                        }
+                        handleJSONResponse (200, error, null, null, res)
                     }
                 });
             }).catch(function (error) {
-                var errorCode = error.code;
-                var errorMessage = error.message;
-                handleError(errorCode, errorMessage, res);
+                handleJSONResponse (200, error, null, null, res);
             })
         });
     },
@@ -457,6 +427,10 @@ module.exports = {
     },
 
     //  Visible API functions
+    sendResponse: function(code, error, success, data, res) {
+        handleJSONResponse(code, error, success, data, res);
+    },
+    
     getUsers: function(req, res) {
         retrieveAll(kUsers, function(success, error, data) {
             var results = new Array();
@@ -583,9 +557,9 @@ module.exports = {
     },
 
     createUser: function(req, res) {
-        var object = createEmptyUserObject(req.body.email,req.body.name, req.body.uid,req.body.type);
-        addFor(kUsers, object, function (success, error, document, id) {
-            var data = { "userId": id }
+        var object = createEmptyUserObject(req.body.email, req.body.name, req.body.uid, req.body.type, req.body.kidsCount, req.body.maritalStatus, req.body.linkedin, req.body.facebook, req.body.instagram);
+        addFor(kUsers, object, function (success, error, document) {
+            var data = { "userId": document.id }
             handleJSONResponse(200, error, success, data, res);
         });
     },
@@ -961,15 +935,16 @@ module.exports = {
     }
 }
 
-function createEmptyUserObject(email, name, uid, type) {
+function createEmptyUserObject(email, name, uid, type, kidsCount, maritalStatus, linkedin, facebook, instagram) {
     var data = {
         id: randomstring.generate(25),
         email: email,
         name: name,
         uid: uid,
         createdAt: new Date(),
+        lastLogin: new Date(),
         type: type,
-        currentPage: 1,
+        maritalStatus: maritalStatus,
         preferredCurrency: 'USD',
         notifications : false,
         maxDistance : 25.0,
@@ -1009,6 +984,7 @@ function createEmptyUserObject(email, name, uid, type) {
         kidsNames: null,
         kidsAges: null,
         kidsBio: null,
+        kidsCount: kidsCount,
         questionOneTitle: null,
         questionOneResponse: null,
         questionTwoTitle: null,
@@ -1018,11 +994,9 @@ function createEmptyUserObject(email, name, uid, type) {
         canSwipe: true,
         nextSwipeDate: null,
         profileCreation : false,
-        lastId: null,
-        isBanned: false,
-        isPremium: false,
-        matchedUsers: new Array,
-        blockedUsers: new Array
+        socialInstagram: instagram,
+        socialFacebook: facebook,
+        socialLinkedIn: linkedin
     }
     return data
 }
@@ -1216,24 +1190,20 @@ function generateUserModel(doc) {
         userInformationSection2: [
             {
                 type: "kidsNames",
-                title: "Kid's Names",
-                info: doc.kidsNames,
-                image: "kids"
+                title: "Name(s) of my kid(s)",
+                info: doc.kidsNames
             }, {
                 type: "kidsAges",
-                title: "Kids Ages",
-                info: doc.kidsAges,
-                image: "kids"
+                title: "My kid(s) age range",
+                info: doc.kidsAges
             }, {
                 type: "kidsBio",
-                title: "About My Kids",
-                info: doc.kidsBio,
-                image: "kids"
+                title: "About my kid(s)",
+                info: doc.kidsBio
             }, {
                 type: "kidsCount",
-                title: "My Kids",
-                info: doc.kidsCount,
-                image: "kids"
+                title: "Number of kids",
+                info: doc.kidsCount
             }
         ],
         userInformationSection3: [

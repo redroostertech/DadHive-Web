@@ -50,8 +50,11 @@ router.post('/getUser', function(req, res) {
 });
 
 router.post('/createUser', function(req, res) {
-    console.log(req.body);
-    dadhiveFunctions.createUser(req, res);
+    dadhiveFunctions.signup(req, res, function(uid, body) {
+        req.body.uid = uid
+        req.body.type = "1"
+        dadhiveFunctions.createUser(req, res);
+    });
 });
 
 router.post('/createMatch', function(req, res) {

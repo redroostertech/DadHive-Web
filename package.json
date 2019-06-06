@@ -10,7 +10,7 @@
   "author": "RedRooster Technologies Inc.",
   "license": "MIT",
   "dependencies": {
-    "@google-cloud/storage": "^2.0.3",
+    "@google-cloud/storage": "^2.5.0",
     "async": "^2.6.1",
     "aws-sdk": "*",
     "bcryptjs": "^2.4.3",
