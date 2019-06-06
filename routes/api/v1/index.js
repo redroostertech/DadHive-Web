@@ -34,32 +34,6 @@ router.get('/test', function(req, res) {
     })
 });
 
-router.post('/register', function(req, res) {
-    var userId = randomstring.generate(10);
-    var user = {
-        uid: userId,
-        uname: req.body.uname,
-        uemail: req.body.uemail,
-        umar_status: req.body.umar_status,
-        uchildren: req.body.uchildren,
-        updatedAt: Date(),
-        createdAt: Date(),
-        uphotoUrl: null,
-        ulinkedin: null,
-        ufacebook: null,
-        uinstagram: null,
-        upostscount: 0,
-        ufollowcount: 0,
-        ufollwerscount: 0,
-        ufavoritescount: 0,
-        ulastlogin: Date()
-    }
-    console.log(user);
-    res.json({
-        "data": user
-    })
-})
-
 router.get('/getUsers', function(req, res) {
     console.log(req.body);
     dadhiveFunctions.getUsers(req, res);
@@ -71,8 +45,11 @@ router.post('/getUser', function(req, res) {
 });
 
 router.post('/createUser', function(req, res) {
-    console.log(req.body);
-    dadhiveFunctions.createUser(req, res);
+    dadhiveFunctions.signup(req, res, function(uid, body) {
+        req.body.uid = uid
+        req.body.type = "1"
+        dadhiveFunctions.createUser(req, res);
+    });
 });
 
 router.post('/createMatch', function(req, res) {
