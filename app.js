@@ -87,16 +87,8 @@ app.get('/submitquestion', function(req, res){
     res.status('200').render('submitquestion');
 });
 
-app.get('/preregister', function(req, res){
-    res.status('200').render('preregister');
-});
-
 app.get('/register', function(req, res){
-    if (isLive === true || isLive === "true") {
-        res.status('200').render('register');
-    } else {
-        res.redirect('/');
-    }
+    res.status('200').render('register');
 });
 
 //  API
@@ -254,58 +246,26 @@ app.get('/sessioncheck', function(req, res){
 
 //  AUTHCONTROLLER
 app.post('/register', function(req, res) {
-    var userId = randomstring.generate(10)
-    firebase.auth().createUserWithEmailAndPassword(req.body.uemail, req.body.upswd).then(function() {
-        var userObj = {
-            uid: userId,
-            uname: req.body.uname,
-            uemail: req.body.uemail,
-            umar_status: req.body.umar_status,
-            uchildren: req.body.uchildren,
-            updatedAt: Date(),
-            createdAt: Date(),
-            uphotoUrl: null,
-            ulinkedin: null,
-            ufacebook: null,
-            uinstagram: null,
-            upostscount: 0,
-            ufollowcount: 0,
-            ufollwerscount: 0,
-            ufavoritescount: 0,
-            ulastlogin: Date()
-        } 
-        firebase.database().ref('users/'+firebase.auth().currentUser.uid).set(userObj).then(function(){
-            //  MARK:- Send Response
-            res.status(200).send({
-                response: 200,
-                message: "Data was returned from the database.",
-                data: {
-                    auth_token: "token"
-                }
-            });
-        }).catch(function(error) {
-            // Handle Errors here.
-            var errorCode = error.code;
-            var errorMessage = error.message;
-            
-            res.status(500).send({
-                response: 500,
-                message: errorMessage,
-                error: error
-            });
-        });
-        
-    }).catch(function(error) {
-        // Handle Errors here.
-        var errorCode = error.code;
-        var errorMessage = error.message;
-
-        res.status(500).send({
-            response: 500,
-            message: errorMessage,
-            error: error
-        });
-    });
+    var userId = randomstring.generate(10);
+    var user = {
+        uid: userId,
+        uname: req.body.uname,
+        uemail: req.body.uemail,
+        umar_status: req.body.umar_status,
+        uchildren: req.body.uchildren,
+        updatedAt: Date(),
+        createdAt: Date(),
+        uphotoUrl: null,
+        ulinkedin: null,
+        ufacebook: null,
+        uinstagram: null,
+        upostscount: 0,
+        ufollowcount: 0,
+        ufollwerscount: 0,
+        ufavoritescount: 0,
+        ulastlogin: Date()
+    }
+    console.log(user);
 });
 
 //  PREREGISTER USER
