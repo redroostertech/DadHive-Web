@@ -142,6 +142,19 @@
                         <option value="4">4+</option>
                     </select>
                 </div>
+                <div class="form-group">
+                    <label>Age of Children</label>
+                    <select class="form-control" name="ageRanges">
+                        <option value="0">2 to 4 years old</option>
+                        <option value="1">4 to 7 years old</option>
+                        <option value="2">7 to 10 years old</option>
+                        <option value="3">10 to 13 years old</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Kids Names</label>
+                    <input class="form-control" type="text" placeholder="Enter your kids first name(s)" name="kidsNames">
+                </div>
                 <label>Social Media <i style="font-size: smaller;">Optional</i></label>
                 <div class="input-group">
                     <span class="input-group-addon" id="basic-addon2">www.linkedin.com/</span>
@@ -179,11 +192,13 @@
                 var linkedin = form["linkedin_usr"].value;
                 var facebook = form["facebook_usr"].value;
                 var instagram = form["instagram_usr"].value;
+                var ageRanges = form["ageRanges"].value;
+                var kidsNames = form["kidsNames"].value;
 
                 if (emailValidation(email) == true) {
                     console.log('Email is valid');
 
-                    if (!name || !email || !password ||  !maritalStatus || !kidsCount) {
+                    if (!name || !email || !password ||  !maritalStatus || !kidsCount || !ageRanges || !kidsNames ) {
 
                         document.getElementById("loader").style.display = "none";
                         document.getElementById("error-alert").style.display = "block";
@@ -268,7 +283,9 @@
                             password: password,
                             linkedin: linkedin,
                             facebook: facebook,
-                            instagram: instagram
+                            instagram: instagram,
+                            ageRanges: ageRanges,
+                            kidsNames: kidsNames
                         })); 
 
                     }

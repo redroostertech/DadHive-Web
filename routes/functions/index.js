@@ -565,7 +565,7 @@ module.exports = {
     },
 
     createUser: function(req, res) {
-        var object = createEmptyUserObject(req.body.email, req.body.name, req.body.uid, req.body.type, req.body.kidsCount, req.body.maritalStatus, req.body.linkedin, req.body.facebook, req.body.instagram);
+        var object = createEmptyUserObject(req.body.email, req.body.name, req.body.uid, req.body.type, req.body.kidsCount, req.body.maritalStatus, req.body.linkedin, req.body.facebook, req.body.instagram, req.body.ageRanges, req.body.kidsNames);
         addFor(kUsers, object, function (success, error, document) {
             var data = { "userId": document.id }
             handleJSONResponse(200, error, success, data, res);
@@ -992,7 +992,7 @@ module.exports = {
     }
 }
 
-function createEmptyUserObject(email, name, uid, type, kidsCount, maritalStatus, linkedin, facebook, instagram) {
+function createEmptyUserObject(email, name, uid, type, kidsCount, maritalStatus, linkedin, facebook, instagram, ageRanges, kidsNames) {
     var data = {
         id: randomstring.generate(25),
         email: email,
@@ -1005,9 +1005,9 @@ function createEmptyUserObject(email, name, uid, type, kidsCount, maritalStatus,
         preferredCurrency: 'USD',
         notifications : false,
         maxDistance : 25.0,
-        ageRangeId: 0,
-        ageRangeMin: 2,
-        ageRangeMax: 4,
+        ageRangeId: ageRanges,
+        ageRangeMin: 0,
+        ageRangeMax: 0,
         initialSetup : false,
         userProfilePicture_1_url: null,
         userProfilePicture_1_meta: null,
@@ -1054,6 +1054,25 @@ function createEmptyUserObject(email, name, uid, type, kidsCount, maritalStatus,
         socialInstagram: instagram,
         socialFacebook: facebook,
         socialLinkedIn: linkedin
+    }
+    if (ageRanges == 0) {
+        data.ageRangeMin = 2;
+        data.ageRangeMax = 4;
+    }
+
+    if (ageRanges == 1) {
+        data.ageRangeMin = 4;
+        data.ageRangeMax = 7;
+    }
+
+    if (ageRanges == 2) {
+        data.ageRangeMin = 7;
+        data.ageRangeMax = 10;
+    }
+
+    if (ageRanges == 3) {
+        data.ageRangeMin = 10;
+        data.ageRangeMax = 13;
     }
     return data
 }
