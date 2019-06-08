@@ -592,9 +592,6 @@ module.exports = {
                     upsert: true
                 }
             , function(err, result) {
-                console.log("Inserted 3 documents into the collection");
-                console.log(result);
-                console.log(err);
                 res.status(200).json({
                     "status": 200,
                     "success": { "result" : true, "message" : "Request was successful" },
@@ -648,23 +645,12 @@ module.exports = {
                         query
                     ).toArray(function(err, docs) {
                         var data = {};
-                        var results = new Array;
+                        var finalData = new Array;
                         async.each(docs, function(doc, completion) {
-                            checkForUser(doc._id, function(success, error, documents) {
-                                if (documents.length >= 1) {
-                                    var snapshotArray = new Array();
-                                    documents.forEach(function(document) {
-                                        var obj = document[0]
-                                        obj.docId = doc._id
-                                        // if (obj.ageRangeId <= parseFloat(req.body.ageRangeId)) {
-                                        //     var emptyImages = [obj.userProfilePicture_1_url, obj.userProfilePicture_2_url, obj.userProfilePicture_3_url, obj.userProfilePicture_4_url, obj.userProfilePicture_5_url, obj.userProfilePicture_6_url]
-                                        //     if (emptyImages.filter(x => x).length > 0) {
-                                                snapshotArray.push(generateUserModel(obj));
-                                        //     }
-                                        // }
-                                    });
-                                    console.log(snapshotArray[0]);
-                                    results.push(snapshotArray[0]);
+                            checkForUser(doc._id, function(success, error, result) {
+                                if (result !== null) {
+                                    result.docId = doc._id
+                                    finalData.push(generateUserModel(result));
                                     return completion();
                                 } else {
                                     return completion();
@@ -672,12 +658,10 @@ module.exports = {
                             });
                         }, function(err) {
                             if (err) {
-                                console.log(err);
                                 callback(err, null);
                             } else {
-                                console.log(results);
-                                if (results.length > 0) {
-                                    data.users = results.filter(x => x);
+                                if (finalData.length > 0 || finalData !== null) {
+                                    data.users = finalData.filter(x => x);
                                     callback(err, data);
                                 } else {
                                     data.users = [];
@@ -689,8 +673,7 @@ module.exports = {
                 });
             },
         }, function(err, results) {
-            console.log("Check for match \n\n");
-            console.log(results.checkForMatch);
+            if (err) return handleJSONResponse(200, err, genericFailure, results, res);
             var data = results.checkForMatch;
             handleJSONResponse(200, err, genericSuccess, data, res);
         });
@@ -924,8 +907,74 @@ module.exports = {
         });
     },
 
-    deleteAllMongoElements: function(req, res) {
+    deleteAllMongoUserGeoElements: function(req, res) {
         main.mongodb.usergeo(function(collection) {
+            collection.deleteMany(function(error, result) {
+                var data = {
+                    "count": 0,
+                    "results": result,
+                }
+                var success;
+                if (!error) {
+                    success = genericSuccess;
+                } else {
+                    success = genericFailure;
+                }
+                handleJSONResponse(200, error, success, data, res);
+            });
+        });
+    },
+
+    deleteGeosBut: function(req, res) {
+        main.mongodb.usergeo(function(collection) {
+            collection.deleteMany(
+                {
+                    _id: {
+                        $nin: [req.body.ids.map(function(id) {
+                            return 'ObjectId("'+ id +'")';
+                        })]
+                    }
+                }, function(error, result) {
+                var data = {
+                    "count": 0,
+                    "results": result,
+                }
+                var success;
+                if (!error) {
+                    success = genericSuccess;
+                } else {
+                    success = genericFailure;
+                }
+                handleJSONResponse(200, error, success, data, res);
+            });
+        });
+    },
+
+    deleteGeo: function(req, res) {
+        var id = 'ObjectId("'+req.body.id+'")';
+        console.log(id);
+        main.mongodb.usergeo(function(collection) {
+            collection.deleteOne(
+                {
+                    "_id": id,
+                }, function(error, result) {
+                var data = {
+                    "count": 0,
+                    "results": result,
+                }
+                var success;
+                if (!error) {
+                    success = genericSuccess;
+                } else {
+                    success = genericFailure;
+                }
+                handleJSONResponse(200, error, success, data, res);
+            });
+        });
+    },
+
+    deleteAllMongoActionElements: function(req, res) {
+        main.mongodb.actioncol(function(collection) {
             collection.deleteMany(function(error, result) {
                 var data = {
                     "count": 0,

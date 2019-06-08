@@ -146,9 +146,28 @@ router.post('/getNearbyUsers', function(req, res) {
     dadhiveFunctions.getUsersMongoDB(req, res);
 });
 
-router.post('/deleteAllMongoElements', function(req, res) {
-    console.log(req.bnody);
-    dadhiveFunctions.deleteAllMongoElements(req, res);
+router.get('/deleteAllGeos', function(req, res) {
+    console.log(req.body);
+    dadhiveFunctions.deleteAllMongoUserGeoElements(req, res);
+});
+
+router.post('/deleteGeo', function(req, res) {
+    console.log(req.body);
+    dadhiveFunctions.deleteGeo(req, res);
+});
+
+router.post('/deleteGeosBut', function(req, res) {
+    req.body.ids = ["5cf87bf7178341c6ca36ca92", "5cf87f3c178341c6ca37481b"];
+    dadhiveFunctions.deleteGeosBut(req, res);
 })
+
+router.get('/deleteAllActions', function(req, res) {
+    console.log(req.body);
+    dadhiveFunctions.deleteAllMongoActionElements(req, res);
+});
+
+router.post('/deleteAction', function(req, res) {
+    console.log(req.body);
+});
 
 module.exports = router;
