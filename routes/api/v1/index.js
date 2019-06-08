@@ -50,7 +50,7 @@ router.post('/getUser', function(req, res) {
 });
 
 router.post('/createUser', function(req, res) {
-    dadhiveFunctions.signup(req, res, function(uid, body) {
+    dadhiveFunctions.signup(req, res, function(uid) {
         req.body.uid = uid
         req.body.type = "1"
         dadhiveFunctions.createUser(req, res);
