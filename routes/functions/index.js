@@ -66,7 +66,7 @@ function retrieveAll(collection, callback) {
 function retrieveWithParameters(collection, parameters, callback) {
     main.firebase.firebase_firestore_db(function(reference) {
         if (!reference) { 
-            qcallback(genericFailure, genericError, null);
+            callback(genericFailure, genericError, null);
         } else {
             var ref = reference.collection(collection);
             var results = new Array;
@@ -104,15 +104,15 @@ function retrieveWithParameters(collection, parameters, callback) {
                     });
                     return 
                 } else if (p.condition === "==") {
-                    var query = ref.where(p.key,"==",p.value);
-                    query.get().then(querySnapshot => {
+                    var query = ref.where(p.key,'==', p.value);
+                    query.get().then(function(querySnapshot) {
                         var data = querySnapshot.docs.map(function(doc) {
                             var d = doc.data();
                             d.key = doc.id;
-                            return d
+                            return d;
                         });
                         if (Object.keys(data).length > 0) {
-                            results.push(data);
+                            results.push(data[0]);
                             return completion();
                         } else {
                             return completion();
@@ -154,7 +154,7 @@ function retrieveWithParameters(collection, parameters, callback) {
                     callback(genericFailure, err, null);
                 } else {
                     if (results.length > 0) {
-                        callback(genericSuccess, null, results);
+                        callback(genericSuccess, null, results[0]);
                     } else {
                         callback(genericFailure, genericError, null);
                     }
@@ -435,21 +435,21 @@ module.exports = {
         retrieveAll(kUsers, function(success, error, data) {
             var results = new Array();
             data.forEach(function(doc) {
-                results.push(doc.data());
+                results.push(generateUserModel(doc.data()));
             });
             handleJSONResponse(200, error, success, { "users": results }, res);
         });
     },
 
     getUserWithId: function(id, res) {
-        checkForUser(id, function(success, error, results) {
-            if (results.length >= 1) {
-                var snapshotArray = new Array();
-                results.forEach(function(result) {
-                    snapshotArray.push(generateUserModel(result[0]));
-                });
-                var data = { "user": snapshotArray[0] };
-                handleJSONResponse(200, error, success, data, res);
+        checkForUser(id, function(success, error, result) {
+            if (result !== null) {
+                var userData = generateUserModel(result);
+                console.log("getUserWithId result is not null ", userData);
+                var data = { "user": userData };
+                handleJSONResponse(200, error, success, data, res);;
+            } else {
+                handleJSONResponse(200, error, success, null, res);
             }
         });
     },
@@ -457,10 +457,11 @@ module.exports = {
     getUsersMongoDB: function(req, res) {
         var pageNo = parseInt(req.body.pageNo)
         var size = 100
+        var perPage = parseInt(req.body.perPage)
         var query = {}
         var find = {
             userId: {
-                $ne: req.body.userId
+                $nin: [req.body.userId]
             }, 
             location: { 
                 $near: {
@@ -478,7 +479,7 @@ module.exports = {
         query.limit = size
 
         if (typeof(req.body.lastId) !== "undefined" && req.body.lastId !== '') {
-            find.userId.$gt = req.body.lastId
+            find.userId.$nin.push(req.body.lastId);
         }
 
         console.log(find);
@@ -488,69 +489,76 @@ module.exports = {
                 find,
                 query
             ).toArray(function(error, docs) {
-                // console.log(docs);
-                var count = docs.length;
-                var data = {
-                    "current": pageNo,
-                    "next": pageNo + 1,
-                    "pages": Math.ceil(count / size)
-                }
-                data.users = new Array;
-                var success;
+                if (docs !== null) {
+                    var resultsCount = docs.length;
+                    var totalPages = Math.ceil(resultsCount / size);
+                    var data = {
+                        "currentPage": pageNo,
+                        "nextPage": totalPages > pageNo ? pageNo + 1: totalPages,
+                        "totalPages": totalPages,
+                        "resultsCount": 0,
+                        "resultsPerPage": perPage,
+                    }
+                    data.users = new Array;
+                    var success;
 
-                if (count > 0) {
+                    if (resultsCount > 0) {
 
-                    success = genericSuccess;
-                    var finalData = new Array;
+                        success = genericSuccess;
+                        var finalData = new Array;
 
-                    async.each(docs, function(doc, completion) {
-                        checkForUser(doc.userId, function(success, error, results) {
-                            if (results !== null) {
-                                var documents = results[0];
-                                if (documents.length >= 1 || documents !== null) {
-                                    var snapshotArray = new Array();
-                                    documents.forEach(function(document) {
-                                        var obj = document
-                                        obj.docId = doc._id
-                                        if (obj.ageRangeId <= parseFloat(req.body.ageRangeId)) {
-                                            var emptyImages = [obj.userProfilePicture_1_url, obj.userProfilePicture_2_url, obj.userProfilePicture_3_url, obj.userProfilePicture_4_url, obj.userProfilePicture_5_url, obj.userProfilePicture_6_url]
-                                            if (emptyImages.filter(x => x).length > 0) {
-                                                snapshotArray.push(generateUserModel(obj));
-                                            }
+                        async.each(docs, function(doc, completion) {
+                            checkForUser(doc.userId, function(success, error, result) {
+                                if (result !== null) {
+
+                                    //console.log("Result is not null");
+                                    var obj = result;
+                                    obj.docId = doc._id;
+
+                                    if (obj.ageRangeId <= parseFloat(req.body.ageRangeId)) {
+                                        var emptyImages = [obj.userProfilePicture_1_url, obj.userProfilePicture_2_url, obj.userProfilePicture_3_url, obj.userProfilePicture_4_url, obj.userProfilePicture_5_url, obj.userProfilePicture_6_url]
+                                        if (emptyImages.filter(x => x).length > 0) {
+                                            //console.log(obj);
+                                            finalData.push(generateUserModel(obj));
+                                            data.resultsCount += 1;
+                                            return completion();
+                                        } else {
+                                            //console.log("Does not include images");
+                                            return completion();
                                         }
-                                    });
-                                    if (snapshotArray !== null) {
-                                        // console.log(snapshotArray[0]);
-                                        finalData.push(snapshotArray[0]);
+                                    } else {
+                                        //console.log("Does not include age range ID");
+                                        finalData.push(generateUserModel(obj));
+                                        data.resultsCount += 1;
+                                        return completion();
                                     }
-                                    return completion();
                                 } else {
                                     return completion();
                                 }
+                            });
+                        }, function(err) {
+                            //console.log("Final data: ", finalData);
+                            if (err) {
+                                console.log(err);
+                                return handleJSONResponse(200, err, success, data, res);
                             } else {
-                                return completion();
+                                if (finalData.length > 0 || finalData !== null) {
+                                    //data.resultsCount += 1;
+                                    data.users = finalData.filter(x => x);
+                                    return handleJSONResponse(200, null, success, data, res);
+                                } else {
+                                    return handleJSONResponse(200, genericError, genericFailure, data, res);
+                                }
                             }
-                        });
-                    }, function(err) {
-                        console.log(finalData);
-                        if (err) {
-                            console.log(err);
-                            return handleJSONResponse(200, err, success, data, res);
-                        } else {
-                            if (finalData.length > 0 || finalData !== null) {
-                                data.users = finalData.filter(x => x);
-                                return handleJSONResponse(200, null, success, data, res);
-                            } else {
-                                return handleJSONResponse(200, genericError, genericFailure, data, res);
-                            }
-                        }
 
-                    });
+                        });
+                    } else {
+                        success = genericFailure;
+                        return handleJSONResponse(200, error, success, data, res);
+                    }
                 } else {
-                    success = genericFailure;
                     return handleJSONResponse(200, error, success, data, res);
                 }
-                
             });
         });
         
@@ -1036,16 +1044,34 @@ function createMatchObject(senderId, recipientId) {
 }
 
 function checkForUser (uid, callback) {
-    var parameters = [
-        {
-            key: "uid",
-            condition: "==", 
-            value: uid
+    main.firebase.firebase_firestore_db(function(reference) {
+        if (!reference) { 
+            callback(genericFailure, genericError, null);
+        } else {
+            var ref = reference.collection(kUsers);        
+            var query = ref.where('uid','==', uid);
+            query.get().then(function(querySnapshot) {
+                var data = querySnapshot.docs.map(function(doc) {
+                    var d = doc.data();
+                    d.key = doc.id;
+                    return d;
+                });
+                if (Object.keys(data).length > 0) {
+                    callback(genericSuccess, null, data[0]);
+                } else {
+                    callback(genericFailure, genericError, null);
+                }
+            }, function(err) {
+                if (err) {
+                    console.log(err);
+                    callback(genericFailure, err, null);
+                }
+            });
         }
-    ]
-    retrieveWithParameters(kUsers, parameters, function(success, error, snapshots) {
-        callback(success, error, snapshots);
     });
+    // retrieveWithParameters(kUsers, parameters, function(success, error, snapshots) {
+    //     callback(success, error, snapshots);
+    // });
 }
 
 function checkForMatch (recipientId, senderId, callback) {
