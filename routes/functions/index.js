@@ -696,31 +696,32 @@ module.exports = {
     findConversations: function(req, res) {
         //  Check if I already have a conversation started
         checkForConversation(req.body.senderId, function(success, error, conversations) {
+
+            if (error) return handleJSONResponse(200, error, success, conversations, res);
+
             var conversationArray = new Array();
             if (conversations.length > 0) {
                 async.each(conversations, function(result, callback) {
-                    var doc = result[0];
+                    var doc = result;
                     var trueRecipientId = doc.senderId === req.body.senderId ? doc.recipientId : doc.senderId;
                     async.parallel({
                         recipient: function(callback) {
-                            checkForUser(doc.recipientId, function(success, error, results) {
-                                if (results.length >= 1) {
-                                    var snapshotArray = new Array();
-                                    results.forEach(function(result) {
-                                        snapshotArray.push(generateUserModel(result[0]));
-                                    });
-                                    callback(null, snapshotArray[0]);
+                            checkForUser(doc.recipientId, function(success, error, result) {
+                                if (result !== null) {
+                                    var userData = generateUserModel(result);
+                                    callback(null, userData);
+                                } else {
+                                    callback(null, null);
                                 }
                             });
                         },
                         sender: function(callback) {
-                            checkForUser(doc.senderId, function(success, error, results) {
-                                if (results.length >= 1) {
-                                    var snapshotArray = new Array();
-                                    results.forEach(function(result) {
-                                        snapshotArray.push(generateUserModel(result[0]));
-                                    });
-                                    callback(null, snapshotArray[0]);
+                            checkForUser(doc.senderId, function(success, error, result) {
+                                if (result !== null) {
+                                    var userData = generateUserModel(result);
+                                    callback(null, userData);
+                                } else {
+                                    callback(null, null);
                                 }
                             });
                         },
@@ -741,13 +742,12 @@ module.exports = {
                             }
                         },
                         trueRecipient: function(callback) {
-                            checkForUser(trueRecipientId, function(success, error, results) {
-                                if (results.length >= 1) {
-                                    var snapshotArray = new Array();
-                                    results.forEach(function(result) {
-                                        snapshotArray.push(generateUserModel(result[0]));
-                                    });
-                                    callback(null, snapshotArray[0]);
+                            checkForUser(trueRecipientId, function(success, error, result) {
+                                if (result !== null) {
+                                    var userData = generateUserModel(result);
+                                    callback(null, userData);
+                                } else {
+                                    callback(null, null);
                                 }
                             });
                         }
@@ -768,7 +768,7 @@ module.exports = {
                     }
                 });
             } else {
-                handleJSONResponse(200, error, success, data, res);
+                handleJSONResponse(200, error, success, null, res);
             }
         });
     },
@@ -1118,9 +1118,6 @@ function checkForUser (uid, callback) {
             });
         }
     });
-    // retrieveWithParameters(kUsers, parameters, function(success, error, snapshots) {
-    //     callback(success, error, snapshots);
-    // });
 }
 
 function checkForMatch (recipientId, senderId, callback) {
@@ -1141,19 +1138,67 @@ function checkForMatch (recipientId, senderId, callback) {
 }
 
 function checkForConversation (senderId, callback) {
-    var parameters = [
-        {
-            key: "recipientId",
-            condition: "==", 
-            value: senderId
-        },{
-            key: "senderId",
-            condition: "==", 
-            value: senderId
+    main.firebase.firebase_firestore_db(function(reference) {
+        if (!reference) { 
+            callback(genericFailure, genericError, null);
+        } else {
+            var conversationArray = new Array();
+            async.parallel({
+                findRecipientConversations: function(callback) {
+                    var ref = reference.collection(kConversations);        
+                    var query = ref.where('recipientId','==', senderId);
+                    query.get().then(function(querySnapshot) {
+                        var data = querySnapshot.docs.map(function(doc) {
+                            var d = doc.data();
+                            d.key = doc.id;
+                            return d;
+                        });
+                        if (Object.keys(data).length > 0) {
+                            callback(null, data);
+                        } else {
+                            callback(null, null);
+                        }
+                    });
+                },
+                findSenderConversations: function(callback) {
+                    var ref = reference.collection(kConversations);        
+                    var query = ref.where('senderId','==', senderId);
+                    query.get().then(function(querySnapshot) {
+                        var data = querySnapshot.docs.map(function(doc) {
+                            var d = doc.data();
+                            d.key = doc.id;
+                            return d;
+                        });
+                        if (Object.keys(data).length > 0) {
+                            callback(null, data);
+                        } else {
+                            callback(null, null);
+                        }
+                    });
+                }
+            }, function(err, results) {
+                var conversationArray = new Array();
+
+                if (results.findSenderConversations) {
+                    results.findSenderConversations.forEach(function(conversation) {
+                        conversationArray.push(conversation);
+                    });
+                }
+
+                if (results.findRecipientConversations) {
+                    results.findRecipientConversations.forEach(function(conversation) {
+                        conversationArray.push(conversation);
+                    });
+                }
+
+                if (conversationArray.length > 0 ) {
+                    console.log(conversationArray);
+                    callback(genericSuccess, null, conversationArray);
+                } else {
+                    callback(genericSuccess, genericError, null);
+                }
+            });
         }
-    ]
-    retrieveWithParameters(kConversations, parameters, function(success, error, snapshots) {
-        callback(success, error, snapshots);
     });
 }
 
