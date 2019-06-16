@@ -17,6 +17,7 @@ var kUsers = 'users';
 var kMessages = 'messages';
 var kConversations = 'conversations';
 var kMatches = 'matches';
+var kMapItems = 'map-items';
 
 function validateTwilioResponse (message, res) {
     console.log(message);
@@ -331,7 +332,7 @@ function addMongoDB(data, callback) {
                 $near: {
                     $geometry: { 
                         type: "Point",  
-                        coordinates: [ req.body.latitude, req.body.longitude ] },
+                        coordinates: [ req.body.longitude, req.body.latitude ] },
                     $maxDistance: getMeters(req.body.maxDistance)
                 }
             }
@@ -441,6 +442,34 @@ module.exports = {
         });
     },
 
+    getGroupMessages: function(req, res) {
+        main.firebase.firebase_firestore_db(function(reference) {
+            if (!reference) { 
+                callback(genericFailure, genericError, null);
+            } else {
+                var ref = reference.collection(kUsers);        
+                var query = ref.where('uid','==', uid);
+                query.get().then(function(querySnapshot) {
+                    var data = querySnapshot.docs.map(function(doc) {
+                        var d = doc.data();
+                        d.key = doc.id;
+                        return d;
+                    });
+                    if (Object.keys(data).length > 0) {
+                        callback(genericSuccess, null, data[0]);
+                    } else {
+                        callback(genericFailure, genericError, null);
+                    }
+                }, function(err) {
+                    if (err) {
+                        console.log(err);
+                        callback(genericFailure, err, null);
+                    }
+                });
+            }
+        });
+    },
+
     getUserWithId: function(id, res) {
         checkForUser(id, function(success, error, result) {
             if (result !== null) {
@@ -467,7 +496,7 @@ module.exports = {
                 $near: {
                     $geometry: { 
                         type: "Point",  
-                        coordinates: [ parseFloat(req.body.latitude),parseFloat(req.body.longitude) ] },
+                        coordinates: [ parseFloat(req.body.longitude),parseFloat(req.body.latitude) ] },
                     $maxDistance: getMeters(parseFloat(req.body.maxDistance))
                 }
             }
@@ -584,7 +613,7 @@ module.exports = {
                         h: userGeohash,
                         location: {
                             type: "Point", 
-                            coordinates: [ parseFloat(req.body.latitude), parseFloat(req.body.longitude) ]
+                            coordinates: [ parseFloat(req.body.longitude), parseFloat(req.body.latitude) ]
                         }
                     }
                 },{
@@ -871,6 +900,145 @@ module.exports = {
             handleJSONResponse(200, error, success, data, res);
         });
     },
+
+    createMapItem: function(req, res) {
+        addFor(kMapItems, req.body, function (success, error, document) {
+            var data = { "itemId": document.id }
+            handleJSONResponse(200, error, success, data, res);
+        });
+    },
+
+    addToMap: function(req, res) {
+        var userGeohash = geohash.encode(req.body.latitude, req.body.longitude, 10);
+        main.mongodb.mapitemcol(function(collection) {
+            collection.insert(
+                {
+                    "itemId": req.body.itemId,
+                    "userId": req.body.userId,
+                    "type": req.body.type,
+                    "startDate": req.body.startDate,
+                    "name": req.body.name,
+                    "address": req.body.address,
+                    "h": userGeohash,
+                    "location": {
+                        "type": "Point", 
+                        "coordinates": [ parseFloat(req.body.longitude), parseFloat(req.body.latitude) ]
+                    }
+                }
+            , function(err, result) {
+                res.status(200).json({
+                    "status": 200,
+                    "success": { "result" : true, "message" : "Request was successful" },
+                    "data": result,
+                    "error": err
+                });
+            });
+        });
+    },
+
+    retrieveForMap: function(req, res) {
+        var pageNo = parseInt(req.body.pageNo)
+        var size = 1000
+        var perPage = parseInt(req.body.perPage)
+        var query = {}
+        var find = {
+            userId: {
+                $nin: [req.body.userId]
+            }, 
+            location: { 
+                $near: {
+                    $geometry: { 
+                        type: "Point",  
+                        coordinates: [ parseFloat(req.body.longitude),parseFloat(req.body.latitude) ] },
+                    $maxDistance: getMeters(parseFloat(req.body.maxDistance))
+                }
+            }
+        }
+        if (pageNo < 0 || pageNo === 0) {
+            return handleJSONResponse(200, invalidPageFailure, genericFailure, null, res);
+        }
+        query.skip = size * (pageNo - 1)
+        query.limit = size
+
+        console.log(find);
+        
+        main.mongodb.mapitemcol(function(collection) {
+            collection.find(
+                find,
+                query
+            ).toArray(function(error, docs) {
+                if (docs !== null) {
+                    var resultsCount = docs.length;
+                    var totalPages = Math.ceil(resultsCount / size);
+                    var data = {
+                        "currentPage": pageNo,
+                        "nextPage": totalPages > pageNo ? pageNo + 1: totalPages,
+                        "totalPages": totalPages,
+                        "resultsCount": 0,
+                        "resultsPerPage": perPage,
+                    }
+                    data.users = new Array;
+                    var success;
+
+                    if (resultsCount > 0) {
+                        success = genericSuccess;
+                        var finalData = new Array;
+
+                        async.each(docs, function(doc, completion) {
+                            checkForUser(doc.userId, function(success, error, result) {
+                                if (result !== null) {
+
+                                    //console.log("Result is not null");
+                                    var obj = result;
+                                    obj.docId = doc._id;
+
+                                    if (obj.ageRangeId <= parseFloat(req.body.ageRangeId)) {
+                                        var emptyImages = [obj.userProfilePicture_1_url, obj.userProfilePicture_2_url, obj.userProfilePicture_3_url, obj.userProfilePicture_4_url, obj.userProfilePicture_5_url, obj.userProfilePicture_6_url]
+                                        if (emptyImages.filter(x => x).length > 0) {
+                                            //console.log(obj);
+                                            finalData.push(generateUserModel(obj));
+                                            data.resultsCount += 1;
+                                            return completion();
+                                        } else {
+                                            //console.log("Does not include images");
+                                            return completion();
+                                        }
+                                    } else {
+                                        //console.log("Does not include age range ID");
+                                        finalData.push(generateUserModel(obj));
+                                        data.resultsCount += 1;
+                                        return completion();
+                                    }
+                                } else {
+                                    return completion();
+                                }
+                            });
+                        }, function(err) {
+                            //console.log("Final data: ", finalData);
+                            if (err) {
+                                console.log(err);
+                                return handleJSONResponse(200, err, success, data, res);
+                            } else {
+                                if (finalData.length > 0 || finalData !== null) {
+                                    //data.resultsCount += 1;
+                                    data.users = finalData.filter(x => x);
+                                    return handleJSONResponse(200, null, success, data, res);
+                                } else {
+                                    return handleJSONResponse(200, genericError, genericFailure, data, res);
+                                }
+                            }
+
+                        });
+                    } else {
+                        success = genericFailure;
+                        return handleJSONResponse(200, error, success, data, res);
+                    }
+                } else {
+                    return handleJSONResponse(200, error, success, data, res);
+                }
+            });
+        });
+    },
     
     saveLocationMongoDB: function(req, res) {
         var userGeohash = geohash.encode(req.body.latitude, req.body.longitude, 10);
@@ -884,7 +1052,7 @@ module.exports = {
                         h: userGeohash,
                         location: {
                             type: "Point", 
-                            coordinates: [ parseFloat(req.body.latitude), parseFloat(req.body.longitude) ]
+                            coordinates: [ parseFloat(req.body.longitude), parseFloat(req.body.latitude) ]
                         }
                     }
                 },{
@@ -1117,6 +1285,34 @@ function checkForUser (uid, callback) {
             callback(genericFailure, genericError, null);
         } else {
             var ref = reference.collection(kUsers);        
+            var query = ref.where('uid','==', uid);
+            query.get().then(function(querySnapshot) {
+                var data = querySnapshot.docs.map(function(doc) {
+                    var d = doc.data();
+                    d.key = doc.id;
+                    return d;
+                });
+                if (Object.keys(data).length > 0) {
+                    callback(genericSuccess, null, data[0]);
+                } else {
+                    callback(genericFailure, genericError, null);
+                }
+            }, function(err) {
+                if (err) {
+                    console.log(err);
+                    callback(genericFailure, err, null);
+                }
+            });
+        }
+    });
+}
+
+function checkForMapItem (uid, callback) {
+    main.firebase.firebase_firestore_db(function(reference) {
+        if (!reference) { 
+            callback(genericFailure, genericError, null);
+        } else {
+            var ref = reference.collection(kMapItems);        
             var query = ref.where('uid','==', uid);
             query.get().then(function(querySnapshot) {
                 var data = querySnapshot.docs.map(function(doc) {

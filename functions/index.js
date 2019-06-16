@@ -1,8 +1,65 @@
-const functions = require('firebase-functions');
 
-// // Create and Deploy Your First Cloud Functions
-// // https://firebase.google.com/docs/functions/write-firebase-functions
-//
-// exports.helloWorld = functions.https.onRequest((request, response) => {
-//  response.send("Hello from Firebase!");
+const functions           = require('firebase-functions');
+const admin               = require('firebase-admin');
+const Firestore           = require('@google-cloud/firestore');
+const request             = require('request')
+
+admin.initializeApp();
+
+const firestore = new Firestore({
+    projectId: 'dadhive-cc6f5',
+    timestampsInSnapshots: true,
+});
+
+exports.updateUserLocation = functions.firestore.document('users/{userId}').onUpdate((change, context) => {
+    
+    console.log(context.params);
+    
+    var beforeData = change.before.data();
+    var afterData = change.after.data();
+
+    if (beforeData.addressLat === afterData.addressLat && beforeData.addressLong === afterData.addressLong) return null;
+
+    console.log(afterData);
+    request.post('https://dadhive-test.herokuapp.com/api/v1/updateUserLocation', {
+        json: {
+            latitude: afterData.addressLat,
+            longitude: afterData.addressLong,
+            userId: afterData.uid,
+        }
+    }, (error, response, body) => {
+        if (error) {
+            console.error(error)
+            return null;
+        }
+        res.status(200).json({
+            "status": 200,
+            "success": { "result" : true, "message" : "Request was successful" },
+            "data": body,
+            "error": null
+        });
+    });
+});
+
+
+// exports.updateUserLocation = functions.https.onRequest(async (req, res) => {
+//     console.log(req.body);
+//     request.post('https://dadhive-test.herokuapp.com/api/v1/updateUserLocation', {
+//         json: {
+//             latitude: req.body.latitude,
+//             longitude: req.body.longitude,
+//             userId: req.body.userId,
+//         }
+//     }, (error, response, body) => {
+//         if (error) {
+//             console.error(error)
+//             return
+//         }
+//         res.status(200).json({
+//             "status": 200,
+//             "success": { "result" : true, "message" : "Request was successful" },
+//             "data": body,
+//             "error": null
+//         });
+//     });
 // });

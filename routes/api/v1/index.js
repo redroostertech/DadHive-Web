@@ -141,9 +141,32 @@ router.post('/saveLocation', function(req, res) {
     dadhiveFunctions.saveLocationMongoDB(req, res);
 });
 
+router.post('/updateUserLocation', function(req, res) {
+    console.log(req.body);
+    dadhiveFunctions.saveLocationMongoDB(req, res);
+});
+
+router.post('/getGroupMessages', function(req, res) {
+    console.log(req.body);
+    dadhiveFunctions.getGroupMessages(req, res);
+})
+
 router.post('/getNearbyUsers', function(req, res) {
     console.log(req.body);
     dadhiveFunctions.getUsersMongoDB(req, res);
+});
+
+router.post('/addToMap', function(req, res) {
+    console.log(req.body);
+    dadhiveFunctions.createMapItem(req, res, function(itemId) {
+        req.body.itemId = itemId
+        dadhiveFunctions.addToMap(req, res);
+    });
+});
+
+router.post('/retrieveForMap', function(req, res) {
+    console.log(req.body);
+    dadhiveFunctions.retrieveForMap(req, res);
 });
 
 router.get('/deleteAllGeos', function(req, res) {

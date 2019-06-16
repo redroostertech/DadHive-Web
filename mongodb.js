@@ -57,3 +57,9 @@ module.exports.actioncol = function returnMongoUserGeoDB(callback) {
     var collection = db.collection('action');
     callback(collection);
 }
+
+module.exports.mapitemcol = function returnMongoMapItemGeoDB(callback) {
+    var db = moClient.db('dadhive-main-20193f0912h309');
+    var collection = db.collection('map-items');
+    callback(collection);
+}
