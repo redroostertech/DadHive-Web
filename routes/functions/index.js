@@ -196,13 +196,13 @@ function updateFor(collection, docID, data, callback) {
 function addFor(collection, data, callback) {
     main.firebase.firebase_firestore_db(function(reference) {
         if (!reference) { 
-            return callback(genericFailure, genericError , null);
+            callback(genericFailure, genericError , null);
         } else {
             reference.collection(collection).add(data).then(function(docRef) {
                 console.log("Document written with ID: ", docRef.id);
-                return callback(genericSuccess, null, docRef, docRef.id);
+                callback(genericSuccess, null, docRef, docRef.id);
             }).catch(function (error) {
-                return callback(genericFailure, error, null);
+                callback(genericFailure, error, null);
             });
         }
     });
@@ -367,21 +367,26 @@ module.exports = {
     signup: function(req, res, callback) {
         console.log(req.body);
         main.firebase.firebase_auth(function(auth) {
-            auth.createUserWithEmailAndPassword(req.body.email, req.body.password).then(function () {
-                auth.onAuthStateChanged(function (user) {
-                    if (user) {
-                        callback(user.uid, req.body);
-                    } else {
+            auth.signOut().then(function() {
+                auth.createUserWithEmailAndPassword(req.body.email, req.body.password).then(function () {
+                    if (auth.currentUser === null) {
                         var error = {
                             "code": 200,
                             "message": "Something went wrong. Please try again later."
                         }
+                        console.log(error);
                         handleJSONResponse (200, error, null, null, res)
+                    } else {
+                        callback(auth.currentUser.uid, req.body);
                     }
+                }).catch(function (error) {
+                    console.log(error);
+                    handleJSONResponse (200, error, null, null, res);
                 });
-            }).catch(function (error) {
+            }).catch(function(error) {
+                console.log(error);
                 handleJSONResponse (200, error, null, null, res);
-            })
+            });
         });
     },
 

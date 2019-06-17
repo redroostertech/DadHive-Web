@@ -51,9 +51,18 @@ router.post('/getUser', function(req, res) {
 
 router.post('/createUser', function(req, res) {
     dadhiveFunctions.signup(req, res, function(uid) {
-        req.body.uid = uid
-        req.body.type = "1"
-        dadhiveFunctions.createUser(req, res);
+        if (uid === null) { 
+            var error = {
+                "code": 200,
+                "message": "Something went wrong. Please try again later."
+            }
+            console.log(error);
+            dadhiveFunctions.sendResponse(200, error, null, null, res)
+        } else {
+            req.body.uid = uid
+            req.body.type = "1"
+            dadhiveFunctions.createUser(req, res);
+        }
     });
 });
 
