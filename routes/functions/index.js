@@ -901,38 +901,42 @@ module.exports = {
         });
     },
 
-    createMapItem: function(req, res) {
+    createMapItem: function(req, res, callback) {
         addFor(kMapItems, req.body, function (success, error, document) {
+            if (error) return handleJSONResponse(200, error, success, data, res);
             var data = { "itemId": document.id }
-            handleJSONResponse(200, error, success, data, res);
+            callback(data);
         });
     },
 
     addToMap: function(req, res) {
         var userGeohash = geohash.encode(req.body.latitude, req.body.longitude, 10);
         main.mongodb.mapitemcol(function(collection) {
-            collection.insert(
+            console.log("Adding to map");
+            collection.insertOne( 
                 {
-                    "itemId": req.body.itemId,
-                    "userId": req.body.userId,
-                    "type": req.body.type,
-                    "startDate": req.body.startDate,
-                    "name": req.body.name,
-                    "address": req.body.address,
-                    "h": userGeohash,
-                    "location": {
-                        "type": "Point", 
-                        "coordinates": [ parseFloat(req.body.longitude), parseFloat(req.body.latitude) ]
+                    itemId: req.body.itemId,
+                    userId: req.body.userId,
+                    type: req.body.type,
+                    startDate: req.body.startDate,
+                    name: req.body.name,
+                    address: req.body.address,
+                    h: userGeohash,
+                    location: {
+                        type: "Point", 
+                        coordinates: [ parseFloat(req.body.longitude), parseFloat(req.body.latitude) ]
                     }
+                }, function(err) {
+                    console.log(err);
+                    if (err) return handleJSONResponse(200, err, genericFailure, null, res);
+                    res.status(200).json({
+                        "status": 200,
+                        "success": { "result" : true, "message" : "Request was successful" },
+                        "data": req.body,
+                        "error": null
+                    });
                 }
-            , function(err, result) {
-                res.status(200).json({
-                    "status": 200,
-                    "success": { "result" : true, "message" : "Request was successful" },
-                    "data": result,
-                    "error": err
-                });
-            });
+            )
         });
     },
 
@@ -968,6 +972,7 @@ module.exports = {
                 query
             ).toArray(function(error, docs) {
                 if (docs !== null) {
+                    console.log(docs);
                     var resultsCount = docs.length;
                     var totalPages = Math.ceil(resultsCount / size);
                     var data = {
