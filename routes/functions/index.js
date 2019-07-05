@@ -5,7 +5,6 @@ const randomstring  = require('randomstring');
 const async         = require("async");
 const geohash       = require('latlon-geohash');
 
-
 var genericError = { "errorCode": 200, "errorMessage": "Something went wrong." };
 var genericEmptyError = { "errorCode" : null, "errorMessage" : null };
 var genericSuccess = { "result" : true, "message" : "Request was successful" };
@@ -193,6 +192,20 @@ function updateFor(collection, docID, data, callback) {
     });
 }
 
+function deleteFor(collection, docID, callback) {
+    main.firebase.firebase_firestore_db(function(reference) {
+        if (!reference) { 
+            callback(genericFailure, genericError , null);
+        } else {
+            reference.collection(collection).doc(docID).delete().then(function() {
+                callback(genericSuccess, null, null);
+            }).catch(function (error) {
+                callback(genericFailure, error, null);
+            });
+        }
+    });
+}
+
 function addFor(collection, data, callback) {
     main.firebase.firebase_firestore_db(function(reference) {
         if (!reference) { 
@@ -364,6 +377,14 @@ function addMongoDB(data, callback) {
 
 module.exports = {
 
+    createPublicFileURL: function (storageName) {
+        return `http://storage.googleapis.com/${main.configs.firebaseStorageBucket}/${encodeURIComponent(storageName)}`;
+    }, 
+
+    sendResponse: function(code, error, success, data, res) {
+        handleJSONResponse(code, error, success, data, res);
+    },
+
     signup: function(req, res, callback) {
         console.log(req.body);
         main.firebase.firebase_auth(function(auth) {
@@ -377,7 +398,13 @@ module.exports = {
                         console.log(error);
                         handleJSONResponse (200, error, null, null, res)
                     } else {
-                        callback(auth.currentUser.uid, req.body);
+                        var uid = auth.currentUser.uid; 
+                        auth.signOut().then(function() {
+                            callback(uid, req.body);
+                        }).catch(function(error) {
+                            console.log(error);
+                            handleJSONResponse (200, error, null, null, res);
+                        });
                     }
                 }).catch(function (error) {
                     console.log(error);
@@ -395,15 +422,41 @@ module.exports = {
             auth.signInWithEmailAndPassword(req.body.emailaddress, req.body.password).then(function () {
                 auth.onAuthStateChanged(function (user) {
                     if (user) {
-                        checkForUser(user.uid, function(success, error, results) {
-                            if (results.length >= 1) {
-                                var snapshotArray = new Array();
-                                results.forEach(function(result) {
-                                    snapshotArray.push(generateUserModel(result[0]));
-                                });
-                                var data = { "user": snapshotArray[0] };
-                                handleJSONResponse(200, error, success, data, res);
-                            }
+                        // checkForUser(user.uid, function(success, error, results) {
+                        //     if (results.length >= 1) {
+                        //         var snapshotArray = new Array();
+                        //         results.forEach(function(result) {
+                        //             snapshotArray.push(generateUserModel(result[0]));
+                        //         });
+                        //         var data = { "user": snapshotArray[0] };
+                        //         handleJSONResponse(200, error, success, data, res);
+                        //     }
+                        // });
+                        main.mongodb.usergeo(function(collection) {
+                            collection.findOne(
+                                {
+                                    uid: user.uid
+                                }, function(err, result) {
+                                    if (err) return res.status(200).json({
+                                        "status": 200,
+                                        "success": { "result" : false, "message" : "There was an error" },
+                                        "data": null,
+                                        "error": err
+                                    });
+                    
+                                    if (!result) return res.status(200).json({
+                                        "status": 200,
+                                        "success": { "result" : false, "message" : "User does not exist." },
+                                        "data": null,
+                                        "error": err
+                                    });
+                                    res.status(200).json({
+                                        "status": 200,
+                                        "success": { "result" : true, "message" : "Request was successful" },
+                                        "data": generateUserModel(result),
+                                        "error": err
+                                    });
+                            }); 
                         });
                     } else {
                         handleJSONResponse(200, genericEmptyError, genericFailure, null, res);
@@ -416,79 +469,748 @@ module.exports = {
         });
     },
 
-    createPublicFileURL: function (storageName) {
-        return `http://storage.googleapis.com/${main.configs.firebaseStorageBucket}/${encodeURIComponent(storageName)}`;
-    }, 
+    createUserMongoDB: function(req, res) {
 
-    //  Generic page transitions
-    loadVenueUpload: function(res) {
-        loadView("main/twilio-upload", 200, genericSuccess, null, genericEmptyError, res);
-    },
+        // MARK: - Create user
+        main.mongodb.usergeo(function(collection) {
+            var user_object = createEmptyUserObject(req.body.email, req.body.name, req.body.uid, req.body.type, req.body.kidsCount, req.body.maritalStatus, req.body.linkedin, req.body.facebook, req.body.instagram, req.body.ageRanges, req.body.kidsNames);
+            collection.insertOne(user_object, function(err, user) {
+                if (err) return res.status(200).json({
+                    "status": 200,
+                    "success": { "result" : false, "message" : "There was an error" },
+                    "data": null,
+                    "error": err
+                });
 
-    loadSignupView: function(req, res) {
-        retrieve('venue-management', 'venues', function(success, error, data) {
-            var venues = data;
-            loadViewSignUp(200, success, venues, error, res);
-        });
-    },
+                if (!user) return res.status(200).json({
+                    "status": 200,
+                    "success": { "result" : false, "message" : "User does not exist." },
+                    "data": null,
+                    "error": err
+                });
 
-    //  Visible API functions
-    sendResponse: function(code, error, success, data, res) {
-        handleJSONResponse(code, error, success, data, res);
-    },
-    
-    getUsers: function(req, res) {
-        retrieveAll(kUsers, function(success, error, data) {
-            var results = new Array();
-            data.forEach(function(doc) {
-                results.push(generateUserModel(doc.data()));
-            });
-            handleJSONResponse(200, error, success, { "users": results }, res);
-        });
-    },
+                // MARK: - Create actions
+                main.mongodb.actioncol(function(action_collection) {
+                    var action_object = createEmptyActionObject(req.body.uid);
+                    action_collection.insertOne(action_object, function(error, action) {
+                        if (error) return res.status(200).json({
+                            "status": 200,
+                            "success": { "result" : false, "message" : "There was an error" },
+                            "data": null,
+                            "error": error
+                        });
+        
+                        if (!action) return res.status(200).json({
+                            "status": 200,
+                            "success": { "result" : false, "message" : "User does not exist." },
+                            "data": null,
+                            "error": error
+                        });
 
-    getGroupMessages: function(req, res) {
-        main.firebase.firebase_firestore_db(function(reference) {
-            if (!reference) { 
-                callback(genericFailure, genericError, null);
-            } else {
-                var ref = reference.collection(kUsers);        
-                var query = ref.where('uid','==', uid);
-                query.get().then(function(querySnapshot) {
-                    var data = querySnapshot.docs.map(function(doc) {
-                        var d = doc.data();
-                        d.key = doc.id;
-                        return d;
+                        // MARK: - Update user object
+                        collection.updateOne(
+                            {
+                                uid: req.body.uid
+                            },{
+                                $set: {
+                                    actions: action_object.id
+                                }
+                            },{
+                                multi: true,
+                                upsert: true
+                            }
+                        , function(final_error, updated_user) {
+                            if (final_error) return res.status(200).json({
+                                "status": 200,
+                                "success": { "result" : false, "message" : "There was an error" },
+                                "data": null,
+                                "error": final_error
+                            });
+            
+                            if (!updated_user) return res.status(200).json({
+                                "status": 200,
+                                "success": { "result" : false, "message" : "User does not exist." },
+                                "data": null,
+                                "error": err
+                            });
+
+                            // MARK: - Merge the data.
+                            var user_data_formatted = user["ops"][0]
+                            var actionFinal = generateActionModel(action["ops"][0]);
+                            user_data_formatted.actions_results = [actionFinal];
+                            var userFinal = generateUserModel(user_data_formatted);
+                            res.status(200).json({
+                                "status": 200,
+                                "success": { "result" : true, "message" : "Request was successful" },
+                                "data": userFinal,
+                                "error": err
+                            });
+                        }); 
                     });
-                    if (Object.keys(data).length > 0) {
-                        callback(genericSuccess, null, data[0]);
-                    } else {
-                        callback(genericFailure, genericError, null);
+                });
+            });
+        });
+    },
+
+    getUserMongoDB: function(req, res) {
+        main.mongodb.usergeo(function(collection) {
+            collection.aggregate(
+                {
+                    $match : {
+                        uid: req.body.userId
                     }
-                }, function(err) {
-                    if (err) {
-                        console.log(err);
-                        callback(genericFailure, err, null);
+                },
+                {
+                    $lookup: {
+                        from: "action",
+                        localField: "uid",
+                        foreignField: "owner",
+                        as: "actions_results"
                     }
+                }
+                ,{ 
+                    $group: {
+                      _id: null
+                    }
+                  }
+            ).toArray(function(err, result) {
+                if (err) return res.status(200).json({
+                    "status": 200,
+                    "success": { "result" : false, "message" : "There was an error" },
+                    "data": null,
+                    "error": err
+                });
+
+                if (!result) return res.status(200).json({
+                    "status": 200,
+                    "success": { "result" : false, "message" : "User does not exist." },
+                    "data": null,
+                    "error": err
+                });
+
+                res.status(200).json({
+                    "status": 200,
+                    "success": { "result" : true, "message" : "Request was successful" },
+                    "data": generateUserModel(result[0]),
+                    "error": err
+                });
+            }); 
+        });    
+    },
+
+    getUsersMongoDB: function(req, res) {
+        main.mongodb.usergeo(function(collection) {
+            collection.aggregate(
+                {
+                    $lookup: {
+                        from: "action",
+                        localField: "uid",
+                        foreignField: "owner",
+                        as: "actions_results"
+                    }
+                }
+                ,{ 
+                    $group: {
+                      _id: null
+                    }
+                  }
+            ).toArray(function(err, result) {
+                if (err) return res.status(200).json({
+                    "status": 200,
+                    "success": { "result" : false, "message" : "There was an error" },
+                    "data": null,
+                    "error": err
+                });
+
+                if (!result) return res.status(200).json({
+                    "status": 200,
+                    "success": { "result" : false, "message" : "User does not exist." },
+                    "data": null,
+                    "error": err
+                });
+
+                function getUserModel(user) {
+                    return generateUserModel(user);
+                }
+
+                res.status(200).json({
+                    "status": 200,
+                    "success": { "result" : true, "message" : "Request was successful" },
+                    "data": {
+                        "count": result.length,
+                        "users": result.map(getUserModel),
+                    },
+                    "error": err
+                });
+            }); 
+        });    
+    },
+
+    createMatchMongoDB: function(req, res) {
+        async.parallel({
+            addLike: function(callback) {
+                main.mongodb.actioncol(function(collection) {
+                    collection.updateOne(
+                        {
+                            "owner": req.body.senderId
+                        },{
+                            $set: {
+                                updatedAt: new Date(),
+                            }, 
+                            $addToSet: { 
+                                likes: req.body.recipientId 
+                            }
+                        },{
+                            multi: true,
+                            upsert: true
+                        }
+                    , function(err, result) {
+                        callback(err, result);
+                    });
+                });
+            },
+            checkForMatch: function(callback) {
+                main.mongodb.actioncol(function(collection) {
+                    collection.findOneAndUpdate({
+                        owner: {
+                            $eq: req.body.recipientId
+                        }, 
+                        likes: {
+                            $in: [req.body.senderId]
+                        },
+                        blocked: {
+                            $nin: [req.body.senderId]
+                        }
+                    }, {
+                        $addToSet: { 
+                            matches: req.body.senderId 
+                        }
+                    }, {
+                        returnNewDocument: true
+                    }, function(err, docs) {
+                        if (err) return callback(err, false);
+                        if (!docs || !docs.value) return callback(err, false);
+                        callback(err, true);
+                    });
+                });
+            },
+        }, function(err, results) {
+            if (err) return handleJSONResponse(200, err, genericFailure, results, res);
+            if (results.checkForMatch) {
+                main.mongodb.actioncol(function(collection) {
+                    collection.findOneAndUpdate({
+                        owner: {
+                            $eq: req.body.senderId
+                        }
+                    }, {
+                        $addToSet: { 
+                            matches: req.body.recipientId 
+                        }
+                    }, {
+                        returnNewDocument: true
+                    }, function(err, docs) {
+                        if (err) return res.status(200).json({
+                            "status": 200,
+                            "success": { "result" : false, "message" : "There was an error" },
+                            "data": null,
+                            "error": err
+                        });
+                        if (!docs) return res.status(200).json({
+                            "status": 200,
+                            "success": { "result" : false, "message" : "User does not exist." },
+                            "data": null,
+                            "error": err
+                        });
+        
+                        res.status(200).json({
+                            "status": 200,
+                            "success": { "result" : true, "message" : "Request was successful" },
+                            "data": { 
+                                "match_exists": results.checkForMatch,
+                                "action": docs.value
+                            },
+                            "error": err
+                        });
+                    });
+                });
+            } else {
+                res.status(200).json({
+                    "status": 200,
+                    "success": { "result" : true, "message" : "Request was successful" },
+                    "data": { 
+                        "match_exists": results.checkForMatch,
+                        "action": null 
+                    },
+                    "error": err
                 });
             }
         });
     },
 
-    getUserWithId: function(id, res) {
-        checkForUser(id, function(success, error, result) {
-            if (result !== null) {
-                var userData = generateUserModel(result);
-                console.log("getUserWithId result is not null ", userData);
-                var data = { "user": userData };
-                handleJSONResponse(200, error, success, data, res);;
+    getMatchesMongoDB: function(req, res) {
+        main.mongodb.actioncol(function(collection) {
+            collection.aggregate(
+                {
+                    $match : {
+                        owner: req.body.userId
+                    }
+                },{
+                    $unwind: "$matches"
+                },{
+                    $lookup: {
+                        from: "user-geo",
+                        localField: "matches",
+                        foreignField: "uid",
+                        as: "users"
+                    }
+                },{
+                    $group: {
+                        _id: null,
+                        users: { $push: "$matches" }
+                    }
+                }
+            ).toArray(function(err, result) {
+                if (err) return res.status(200).json({
+                    "status": 200,
+                    "success": { "result" : false, "message" : "There was an error" },
+                    "data": null,
+                    "error": err
+                });
+
+                if (!result || !result[0]) return res.status(200).json({
+                    "status": 200,
+                    "success": { "result" : false, "message" : "User does not exist." },
+                    "data": null,
+                    "error": err
+                });
+
+                function getUserModel(object) {
+                    var i = generateUserModel(object.users[0]);
+                    i.actions_results = [];
+                    return i;
+                }
+
+                res.status(200).json({
+                    "status": 200,
+                    "success": { "result" : true, "message" : "Request was successful" },
+                    "data": {
+                        "count": result.length,
+                        "users": result.map(getUserModel),
+                    },
+                    "error": err
+                });
+            }); 
+        });
+    },
+
+    getConversationsMongoDB: function(req, res) {
+        main.mongodb.actioncol(function(collection) {
+            collection.aggregate(
+                {
+                    $match : {
+                        owner: req.body.userId
+                    }
+                },{ 
+                    $unwind: "$conversations" 
+                },{
+                    $lookup: {
+                        from: "conversations",
+                        localField: "conversations",
+                        foreignField: "id",
+                        as: "conversations"
+                    }
+                },{
+                    $group: {
+                        _id: null,
+                        conversations: { $push: "$conversations" }
+                    }
+                }
+            ).toArray(function(err, result) {
+                if (err) return res.status(200).json({
+                    "status": 200,
+                    "success": { "result" : false, "message" : "There was an error" },
+                    "data": null,
+                    "error": err
+                });
+
+                if (!result || !result[0]) return res.status(200).json({
+                    "status": 200,
+                    "success": { "result" : false, "message" : "No conversations exist for user." },
+                    "data": null,
+                    "error": err
+                });
+
+                function getConversationModel(object) {
+                    return generateConversationModel(object.conversations[0]);
+                }
+
+                res.status(200).json({
+                    "status": 200,
+                    "success": { "result" : true, "message" : "Request was successful" },
+                    "data": {
+                        "count": result.length,
+                        "conversations": result.map(getConversationModel),
+                    },
+                    "error": err
+                });
+            }); 
+        });
+    },
+
+    getUsersInConversationMongoDB: function(req,res) {
+        main.mongodb.convoscol(function(collection) {
+            collection.aggregate(
+                {
+                    $match : {
+                        id: req.body.conversationId
+                    }
+                }, 
+                { 
+                    $unwind: "$participants" 
+                }, {
+                    $lookup: {
+                        from: "user-geo",
+                        localField: "participants",
+                        foreignField: "uid",
+                        as: "participants"
+                    }
+                }, {
+                    $group: {
+                        _id: null,
+                        participants: { $push: "$participants" }
+                    }
+                }
+            ).toArray(function(err, result) {
+                if (err) return res.status(200).json({
+                    "status": 200,
+                    "success": { "result" : false, "message" : "There was an error" },
+                    "data": null,
+                    "error": err
+                });
+
+                if (!result || !result[0]) return res.status(200).json({
+                    "status": 200,
+                    "success": { "result" : false, "message" : "No conversations exist for user." },
+                    "data": null,
+                    "error": err
+                });
+
+                function getUserModel(object) {
+                    var i = generateUserModel(object.participants[0]);
+                    i.actions_results = [];
+                    return i;
+                }
+
+                res.status(200).json({
+                    "status": 200,
+                    "success": { "result" : true, "message" : "Request was successful" },
+                    "data": {
+                        "count": result.length,
+                        "users": result.map(getUserModel),
+                    },
+                    "error": err
+                });
+            }); 
+        });
+    },
+
+    createConversationMongoDB: function(req, res) {
+        main.mongodb.convoscol(function(collection) {
+            // MARK :- Check if a conversation already exists.
+            collection.findOne({
+                participants: {
+                    $in: [req.body.senderId, req.body.recipientId]
+                }
+            }, function(err, docs) {
+                if (err) return res.status(200).json({
+                    "status": 200,
+                    "success": { "result" : true, "message" : "There was an error" },
+                    "data": null,
+                    "error": err
+                });
+                if (!docs) {
+                    // MARK :- Create empty conversation object
+                    var convo_object = createConversationObject(req.body.senderId, req.body.recipientId);
+                    main.mongodb.convoscol(function(collection) {
+                        collection.insertOne(convo_object, function(err, convo) {
+                            if (err) return res.status(200).json({
+                                "status": 200,
+                                "success": { "result" : false, "message" : "There was an error" },
+                                "data": null,
+                                "error": err
+                            });
+            
+                            if (!convo) return res.status(200).json({
+                                "status": 200,
+                                "success": { "result" : false, "message" : "Conversation does not exist." },
+                                "data": null,
+                                "error": err
+                            });
+
+                            main.mongodb.actioncol(function(collection) {
+                                collection.updateMany({
+                                    $or: [ 
+                                        {
+                                            owner: {
+                                                $eq: req.body.senderId
+                                            }
+                                        },
+                                        {
+                                            owner: {
+                                                $eq: req.body.recipientId
+                                            }
+                                        }
+                                    ]
+                                }, {
+                                    $addToSet: { 
+                                        conversations: convo_object.id
+                                    }
+                                }, {
+                                    returnNewDocument: true
+                                }, function(err, docs) {
+                                    if (err) return res.status(200).json({
+                                        "status": 200,
+                                        "success": { "result" : false, "message" : "There was an error" },
+                                        "data": null,
+                                        "error": err
+                                    });
+                                    if (!docs) return res.status(200).json({
+                                        "status": 200,
+                                        "success": { "result" : false, "message" : "User conversations not updated." },
+                                        "data": null,
+                                        "error": err
+                                    });
+                    
+                                    res.status(200).json({
+                                        "status": 200,
+                                        "success": { "result" : true, "message" : "Request was successful" },
+                                        "data": {
+                                            "action": docs.modifiedCount,
+                                            "conversation": convo_object
+                                        },
+                                        "error": err
+                                    });
+                                });
+                            });
+                        });
+                    });
+                } else {
+                    res.status(200).json({
+                        "status": 200,
+                        "success": { "result" : false, "message" : "Conversation already exists." },
+                        "data": null,
+                        "error": err
+                    });
+                }
+            });
+        });
+    },
+
+    addParticipantMongoDB: function(req, res) {
+        main.mongodb.convoscol(function(collection) {
+            collection.findOneAndUpdate({
+                owner: {
+                    $eq: req.body.senderId
+                },
+                id: {
+                    $eq: req.body.conversationId
+                },
+                participants: {
+                    $nin: [req.body.participantId]
+                }
+            }, {
+                $addToSet: { 
+                    participants: req.body.participantId 
+                }
+            }, {
+                returnNewDocument: true
+            }, function(err, docs) {
+                if (err) return res.status(200).json({
+                    "status": 200,
+                    "success": { "result" : false, "message" : "There was an error" },
+                    "data": null,
+                    "error": err
+                });
+
+                if (!docs || !docs.value) return res.status(200).json({
+                    "status": 200,
+                    "success": { "result" : false, "message" : "Participant not added." },
+                    "data": null,
+                    "error": err
+                });
+
+                var convo_object = docs.value;
+                main.mongodb.actioncol(function(collection) {
+                    collection.findOneAndUpdate({
+                        owner: {
+                            $eq: req.body.participantId
+                        }
+                    }, {
+                        $addToSet: { 
+                            conversations: req.body.conversationId
+                        }
+                    }, {
+                        returnNewDocument: true
+                    }, function(err, docs) {
+                        if (err) return res.status(200).json({
+                            "status": 200,
+                            "success": { "result" : false, "message" : "There was an error" },
+                            "data": null,
+                            "error": err
+                        });
+                        if (!docs) return res.status(200).json({
+                            "status": 200,
+                            "success": { "result" : false, "message" : "User conversations not updated." },
+                            "data": null,
+                            "error": err
+                        });
+        
+                        res.status(200).json({
+                            "status": 200,
+                            "success": { "result" : true, "message" : "Request was successful" },
+                            "data": {
+                                "action": docs.value,
+                                "conversation": convo_object,
+                            },
+                            "error": err
+                        });
+                    });
+                });
+            })
+        });
+    },
+
+    removeParticipantMongoDB: function(req, res) {
+        main.mongodb.convoscol(function(collection) {
+            collection.findOneAndUpdate({
+                owner: {
+                    $eq: req.body.senderId
+                },
+                id: {
+                    $eq: req.body.conversationId
+                },
+            }, {
+                $pull: { 
+                    participants: req.body.participantId 
+                }
+            }, {
+                returnNewDocument: true
+            }, function(err, docs) {
+                if (err) return res.status(200).json({
+                    "status": 200,
+                    "success": { "result" : false, "message" : "There was an error" },
+                    "data": null,
+                    "error": err
+                });
+
+                if (!docs || !docs.value) return res.status(200).json({
+                    "status": 200,
+                    "success": { "result" : false, "message" : "Participant not removed." },
+                    "data": null,
+                    "error": err
+                });
+
+                var convo_object = docs.value;
+                main.mongodb.actioncol(function(collection) {
+                    collection.findOneAndUpdate({
+                        owner: {
+                            $eq: req.body.participantId
+                        }
+                    }, {
+                        $pull: { 
+                            conversations: req.body.conversationId
+                        }
+                    }, {
+                        returnNewDocument: true
+                    }, function(err, docs) {
+                        if (err) return res.status(200).json({
+                            "status": 200,
+                            "success": { "result" : false, "message" : "There was an error" },
+                            "data": null,
+                            "error": err
+                        });
+                        if (!docs) return res.status(200).json({
+                            "status": 200,
+                            "success": { "result" : false, "message" : "User conversations not updated." },
+                            "data": null,
+                            "error": err
+                        });
+        
+                        res.status(200).json({
+                            "status": 200,
+                            "success": { "result" : true, "message" : "Request was successful" },
+                            "data": {
+                                "action": docs.value,
+                                "conversation": convo_object,
+                            },
+                            "error": err
+                        });
+                    });
+                });
+            })
+        });
+    },
+
+    getMessagesInConversation: function(id, res) {
+        //  Check if I already have a conversation started
+        checkForMessages(id, function(success, error, messages) {
+            console.log(messages);
+            var messagesArray = new Array();
+            if (messages === null) {
+                var data = { "messages": messagesArray};
+                handleJSONResponse(200, error, success, data, res);
             } else {
-                handleJSONResponse(200, error, success, null, res);
+                messages.forEach(function(doc) {
+                    messagesArray.push(doc.data());
+                });
+                var data = { "messages": messagesArray};
+                if (messages.size >= 1) {
+                    handleJSONResponse(200, error, success, data, res);
+                } else {
+                    handleJSONResponse(200, error, success, data, res);
+                }
             }
         });
     },
 
-    getUsersMongoDB: function(req, res) {
+    sendMessageMongoDB: function(req, res) {
+        main.mongodb.convoscol(function(collection) {
+            // MARK :- Check if a conversation already exists.
+            collection.findOne({
+                id: {
+                    $eq: req.body.conversationId
+                },
+                participants: {
+                    $in: [req.body.senderId]
+                }
+            }, function(err, docs) {
+                if (err) return res.status(200).json({
+                    "status": 200,
+                    "success": { "result" : true, "message" : "There was an error" },
+                    "data": null,
+                    "error": err
+                });
+                if (docs) {
+                    // MARK: - Part of conversation open up socket to conversation for real time updates.
+                    res.status(200).json({
+                        "status": 200,
+                        "success": { "result" : true, "message" : "Open socket" },
+                        "data": null,
+                        "error": err
+                    });
+                } else {
+                    res.status(200).json({
+                        "status": 200,
+                        "success": { "result" : false, "message" : "No longer part of the conversation." },
+                        "data": null,
+                        "error": err
+                    });
+                }
+            });
+        });
+    },
+
+    getNearByUsersMongoDB: function(req, res) {
         var pageNo = parseInt(req.body.pageNo)
         var size = 100
         var perPage = parseInt(req.body.perPage)
@@ -542,34 +1264,23 @@ module.exports = {
                         var finalData = new Array;
 
                         async.each(docs, function(doc, completion) {
-                            checkForUser(doc.userId, function(success, error, result) {
-                                if (result !== null) {
-
-                                    //console.log("Result is not null");
-                                    var obj = result;
-                                    obj.docId = doc._id;
-
-                                    if (obj.ageRangeId <= parseFloat(req.body.ageRangeId)) {
-                                        var emptyImages = [obj.userProfilePicture_1_url, obj.userProfilePicture_2_url, obj.userProfilePicture_3_url, obj.userProfilePicture_4_url, obj.userProfilePicture_5_url, obj.userProfilePicture_6_url]
-                                        if (emptyImages.filter(x => x).length > 0) {
-                                            //console.log(obj);
-                                            finalData.push(generateUserModel(obj));
-                                            data.resultsCount += 1;
-                                            return completion();
-                                        } else {
-                                            //console.log("Does not include images");
-                                            return completion();
-                                        }
-                                    } else {
-                                        //console.log("Does not include age range ID");
-                                        finalData.push(generateUserModel(obj));
-                                        data.resultsCount += 1;
-                                        return completion();
-                                    }
+                            if (doc.ageRangeId <= parseFloat(req.body.ageRangeId)) {
+                                var emptyImages = [doc.userProfilePicture_1_url, doc.userProfilePicture_2_url, doc.userProfilePicture_3_url, doc.userProfilePicture_4_url, doc.userProfilePicture_5_url, doc.userProfilePicture_6_url]
+                                if (emptyImages.filter(x => x).length > 0) {
+                                    //console.log(obj);
+                                    finalData.push(generateUserModel(doc));
+                                    data.resultsCount += 1;
+                                    return completion();
                                 } else {
+                                    //console.log("Does not include images");
                                     return completion();
                                 }
-                            });
+                            } else {
+                                //console.log("Does not include age range ID");
+                                finalData.push(generateUserModel(doc));
+                                data.resultsCount += 1;
+                                return completion();
+                            }
                         }, function(err) {
                             //console.log("Final data: ", finalData);
                             if (err) {
@@ -584,7 +1295,6 @@ module.exports = {
                                     return handleJSONResponse(200, genericError, genericFailure, data, res);
                                 }
                             }
-
                         });
                     } else {
                         success = genericFailure;
@@ -598,28 +1308,890 @@ module.exports = {
         
     },
 
-    createUser: function(req, res) {
-        var object = createEmptyUserObject(req.body.email, req.body.name, req.body.uid, req.body.type, req.body.kidsCount, req.body.maritalStatus, req.body.linkedin, req.body.facebook, req.body.instagram, req.body.ageRanges, req.body.kidsNames);
-        addFor(kUsers, object, function (success, error, document) {
-            var data = { "userId": document.id }
-            handleJSONResponse(200, error, success, data, res);
-        });
-    },
-
-    createUserMongoDB: function(req, res) {
-        var object = createEmptyUserObject(req.body.email,req.body.name, req.body.uid,req.body.type);
+    saveLocationMongoDB: function(req, res) {
         main.mongodb.usergeo(function(collection) {
             collection.updateOne(
                 {
-                    "userId": req.body.userId
+                    uid: req.body.userId
                 },{
                     $set: {
-                        userId : req.body.userId,
-                        h: userGeohash,
                         location: {
                             type: "Point", 
                             coordinates: [ parseFloat(req.body.longitude), parseFloat(req.body.latitude) ]
+                        },
+                        addressLine1: req.body.addressLine1 || null,
+                        addressLong: parseFloat(req.body.longitude),
+                        addressLat: parseFloat(req.body.latitude),
+                        addressLine2: req.body.addressLine2 || null,
+                        addressLine3: req.body.addressLine3 || null,
+                        addressLine4: req.body.addressLine4 || null,
+                        addressCity: req.body.addressCity || null,
+                        addressState: req.body.addressState || null,
+                        addressZipCode: req.body.addressZipCode || null,
+                        addressCountry: req.body.addressCountry || null,
+                        addressDescription: req.body.addressDescription || null,
+                    }
+                },{
+                    multi: true,
+                    upsert: true
+                }
+            , function(err, result) {
+                res.status(200).json({
+                    "status": 200,
+                    "success": { "result" : true, "message" : "Request was successful" },
+                    "data": result,
+                    "error": err
+                });
+            }); 
+        });       
+    },
+
+    deleteAllMongoUserGeoElements: function(req, res) {
+        main.mongodb.usergeo(function(collection) {
+            collection.deleteMany(function(error, result) {
+                var data = {
+                    "count": 0,
+                    "results": result,
+                }
+                var success;
+                if (!error) {
+                    success = genericSuccess;
+                } else {
+                    success = genericFailure;
+                }
+                handleJSONResponse(200, error, success, data, res);
+            });
+        });
+    },
+
+    deleteGeosBut: function(req, res) {
+        main.mongodb.usergeo(function(collection) {
+            collection.deleteMany(
+                {
+                    _id: {
+                        $nin: [req.body.ids.map(function(id) {
+                            return 'ObjectId("'+ id +'")';
+                        })]
+                    }
+                }, function(error, result) {
+                var data = {
+                    "count": 0,
+                    "results": result,
+                }
+                var success;
+                if (!error) {
+                    success = genericSuccess;
+                } else {
+                    success = genericFailure;
+                }
+                handleJSONResponse(200, error, success, data, res);
+            });
+        });
+    },
+
+    deleteGeo: function(req, res) {
+        var id = 'ObjectId("'+req.body.id+'")';
+        console.log(id);
+        main.mongodb.usergeo(function(collection) {
+            collection.deleteOne(
+                {
+                    "_id": id,
+                }, function(error, result) {
+                var data = {
+                    "count": 0,
+                    "results": result,
+                }
+                var success;
+                if (!error) {
+                    success = genericSuccess;
+                } else {
+                    success = genericFailure;
+                }
+                handleJSONResponse(200, error, success, data, res);
+            });
+        });
+    },
+
+    deleteAllMongoActionElements: function(req, res) {
+        main.mongodb.actioncol(function(collection) {
+            collection.deleteMany(function(error, result) {
+                var data = {
+                    "count": 0,
+                    "results": result,
+                }
+                var success;
+                if (!error) {
+                    success = genericSuccess;
+                } else {
+                    success = genericFailure;
+                }
+                handleJSONResponse(200, error, success, data, res);
+            });
+        });
+    },
+
+    blockUserMongoDB: function(req, res) {
+        async.parallel({
+            blockThem: function(callback) {
+                main.mongodb.actioncol(function(collection) {
+                    collection.updateOne(
+                        {
+                            "owner": req.body.senderId
+                        },{
+                            $set: {
+                                updatedAt: new Date(),
+                            }, 
+                            $addToSet: { 
+                                blocked: req.body.recipientId 
+                            },
+                            $pull: { 
+                                matches: req.body.recipientId 
+                            }
+                        },{
+                            multi: true,
+                            upsert: true
                         }
+                    , function(err, result) {
+                        callback(err, result);
+                    });
+                });
+            },
+            removeMyConversation: function(callback) {
+                main.mongodb.convoscol(function(collection) {
+                    collection.findOneAndUpdate({
+                        participants: {
+                            $in: [req.body.senderId, req.body.recipientId]
+                        }
+                    }, {
+                        $pull: { 
+                            participants: [req.body.senderId, req.body.recipientId]
+                        }
+                    }, {
+                        returnNewDocument: true
+                    }, function(err, docs) {
+                        if (err) return callback(err, false);
+                        if (!docs || !docs.value) return callback(err, false);
+                        callback(err, true);
+                    });
+                });
+            },
+            blockMe: function(callback) {
+                main.mongodb.actioncol(function(collection) {
+                    collection.updateOne(
+                        {
+                            "owner": req.body.recipientId
+                        },{
+                            $set: {
+                                updatedAt: new Date(),
+                            }, 
+                            $addToSet: { 
+                                blocked: req.body.senderId 
+                            },
+                            $pull: { 
+                                matches: req.body.senderId 
+                            }
+                        },{
+                            multi: true,
+                            upsert: true
+                        }
+                    , function(err, result) {
+                        callback(err, result);
+                    });
+                });
+            }
+        }, function(err, results) {
+            if (err) return res.status(200).json({
+                "status": 200,
+                "success": { "result" : false, "message" : "There was an error" },
+                "data": null,
+                "error": err
+            });
+            if (!results) return res.status(200).json({
+                "status": 200,
+                "success": { "result" : false, "message" : "User was not blocked." },
+                "data": null,
+                "error": err
+            });
+
+            res.status(200).json({
+                "status": 200,
+                "success": { "result" : true, "message" : "User was blocked" },
+                "data": null,
+                "error": err
+            });
+        });
+    },
+
+    editUserMongoDB: function(req, res) {
+        if (req.body.type == "name") {
+            main.mongodb.usergeo(function(collection) {
+                collection.updateOne(
+                    {
+                        uid: req.body.userId
+                    },{
+                        $set: {    
+                            name: req.body.value
+                        }
+                    },{
+                        multi: true,
+                    }
+                , function(err, result) {
+                    if (err) return res.status(200).json({
+                        "status": 200,
+                        "success": { "result" : false, "message" : "There was an error" },
+                        "data": null,
+                        "error": err
+                    });
+                    if (!result) return res.status(200).json({
+                        "status": 200,
+                        "success": { "result" : false, "message" : "User was not updated." },
+                        "data": null,
+                        "error": err
+                    });
+        
+                    res.status(200).json({
+                        "status": 200,
+                        "success": { "result" : true, "message" : "User was updated" },
+                        "data": req.body,
+                        "error": err
+                    });
+                });
+            });
+        }
+
+        if (req.body.type == "dob") {
+            main.mongodb.usergeo(function(collection) {
+                collection.updateOne(
+                    {
+                        uid: req.body.userId
+                    },{
+                        $set: {    
+                            dob: req.body.value
+                        }
+                    },{
+                        multi: true,
+                    }
+                , function(err, result) {
+                    if (err) return res.status(200).json({
+                        "status": 200,
+                        "success": { "result" : false, "message" : "There was an error" },
+                        "data": null,
+                        "error": err
+                    });
+                    if (!result) return res.status(200).json({
+                        "status": 200,
+                        "success": { "result" : false, "message" : "User was not updated." },
+                        "data": null,
+                        "error": err
+                    });
+        
+                    res.status(200).json({
+                        "status": 200,
+                        "success": { "result" : true, "message" : "User was updated" },
+                        "data": req.body,
+                        "error": err
+                    });
+                });
+            });
+        }
+
+        if (req.body.type == "bio") {
+            main.mongodb.usergeo(function(collection) {
+                collection.updateOne(
+                    {
+                        uid: req.body.userId
+                    },{
+                        $set: {    
+                            bio: req.body.value
+                        }
+                    },{
+                        multi: true,
+                    }
+                , function(err, result) {
+                    if (err) return res.status(200).json({
+                        "status": 200,
+                        "success": { "result" : false, "message" : "There was an error" },
+                        "data": null,
+                        "error": err
+                    });
+                    if (!result) return res.status(200).json({
+                        "status": 200,
+                        "success": { "result" : false, "message" : "User was not updated." },
+                        "data": null,
+                        "error": err
+                    });
+        
+                    res.status(200).json({
+                        "status": 200,
+                        "success": { "result" : true, "message" : "User was updated" },
+                        "data": req.body,
+                        "error": err
+                    });
+                });
+            });
+        }
+
+        if (req.body.type == "companyName") {
+            main.mongodb.usergeo(function(collection) {
+                collection.updateOne(
+                    {
+                        uid: req.body.userId
+                    },{
+                        $set: {    
+                            companyName: req.body.value
+                        }
+                    },{
+                        multi: true,
+                    }
+                , function(err, result) {
+                    if (err) return res.status(200).json({
+                        "status": 200,
+                        "success": { "result" : false, "message" : "There was an error" },
+                        "data": null,
+                        "error": err
+                    });
+                    if (!result) return res.status(200).json({
+                        "status": 200,
+                        "success": { "result" : false, "message" : "User was not updated." },
+                        "data": null,
+                        "error": err
+                    });
+        
+                    res.status(200).json({
+                        "status": 200,
+                        "success": { "result" : true, "message" : "User was updated" },
+                        "data": req.body,
+                        "error": err
+                    });
+                });
+            });
+        }
+
+        if (req.body.type == "jobTitle") {
+            main.mongodb.usergeo(function(collection) {
+                collection.updateOne(
+                    {
+                        uid: req.body.userId
+                    },{
+                        $set: {    
+                            jobTitle: req.body.value
+                        }
+                    },{
+                        multi: true,
+                    }
+                , function(err, result) {
+                    if (err) return res.status(200).json({
+                        "status": 200,
+                        "success": { "result" : false, "message" : "There was an error" },
+                        "data": null,
+                        "error": err
+                    });
+                    if (!result) return res.status(200).json({
+                        "status": 200,
+                        "success": { "result" : false, "message" : "User was not updated." },
+                        "data": null,
+                        "error": err
+                    });
+        
+                    res.status(200).json({
+                        "status": 200,
+                        "success": { "result" : true, "message" : "User was updated" },
+                        "data": req.body,
+                        "error": err
+                    });
+                });
+            });
+        }
+
+        if (req.body.type == "schoolName") {
+            main.mongodb.usergeo(function(collection) {
+                collection.updateOne(
+                    {
+                        uid: req.body.userId
+                    },{
+                        $set: {    
+                            schoolName: req.body.value
+                        }
+                    },{
+                        multi: true,
+                    }
+                , function(err, result) {
+                    if (err) return res.status(200).json({
+                        "status": 200,
+                        "success": { "result" : false, "message" : "There was an error" },
+                        "data": null,
+                        "error": err
+                    });
+                    if (!result) return res.status(200).json({
+                        "status": 200,
+                        "success": { "result" : false, "message" : "User was not updated." },
+                        "data": null,
+                        "error": err
+                    });
+        
+                    res.status(200).json({
+                        "status": 200,
+                        "success": { "result" : true, "message" : "User was updated" },
+                        "data": req.body,
+                        "error": err
+                    });
+                });
+            });
+        }
+
+        if (req.body.type == "kidsNames") {
+            main.mongodb.usergeo(function(collection) {
+                collection.updateOne(
+                    {
+                        uid: req.body.userId
+                    },{
+                        $set: {    
+                            kidsNames: req.body.value
+                        }
+                    },{
+                        multi: true,
+                    }
+                , function(err, result) {
+                    if (err) return res.status(200).json({
+                        "status": 200,
+                        "success": { "result" : false, "message" : "There was an error" },
+                        "data": null,
+                        "error": err
+                    });
+                    if (!result) return res.status(200).json({
+                        "status": 200,
+                        "success": { "result" : false, "message" : "User was not updated." },
+                        "data": null,
+                        "error": err
+                    });
+        
+                    res.status(200).json({
+                        "status": 200,
+                        "success": { "result" : true, "message" : "User was updated" },
+                        "data": req.body,
+                        "error": err
+                    });
+                });
+            });
+        }
+
+        if (req.body.type == "kidsAges") {
+            main.mongodb.usergeo(function(collection) {
+                collection.updateOne(
+                    {
+                        uid: req.body.userId
+                    },{
+                        $set: {    
+                            kidsAges: req.body.value
+                        }
+                    },{
+                        multi: true,
+                    }
+                , function(err, result) {
+                    if (err) return res.status(200).json({
+                        "status": 200,
+                        "success": { "result" : false, "message" : "There was an error" },
+                        "data": null,
+                        "error": err
+                    });
+                    if (!result) return res.status(200).json({
+                        "status": 200,
+                        "success": { "result" : false, "message" : "User was not updated." },
+                        "data": null,
+                        "error": err
+                    });
+        
+                    res.status(200).json({
+                        "status": 200,
+                        "success": { "result" : true, "message" : "User was updated" },
+                        "data": req.body,
+                        "error": err
+                    });
+                });
+            });
+        }
+
+        if (req.body.type == "kidsBio") {
+            main.mongodb.usergeo(function(collection) {
+                collection.updateOne(
+                    {
+                        uid: req.body.userId
+                    },{
+                        $set: {    
+                            kidsBio: req.body.value
+                        }
+                    },{
+                        multi: true,
+                    }
+                , function(err, result) {
+                    if (err) return res.status(200).json({
+                        "status": 200,
+                        "success": { "result" : false, "message" : "There was an error" },
+                        "data": null,
+                        "error": err
+                    });
+                    if (!result) return res.status(200).json({
+                        "status": 200,
+                        "success": { "result" : false, "message" : "User was not updated." },
+                        "data": null,
+                        "error": err
+                    });
+        
+                    res.status(200).json({
+                        "status": 200,
+                        "success": { "result" : true, "message" : "User was updated" },
+                        "data": req.body,
+                        "error": err
+                    });
+                });
+            });
+        }
+
+        if (req.body.type == "maxDistance") {
+            main.mongodb.usergeo(function(collection) {
+                collection.updateOne(
+                    {
+                        uid: req.body.userId
+                    },{
+                        $set: {    
+                            maxDistance: parseFloat(req.body.value)
+                        }
+                    },{
+                        multi: true,
+                    }
+                , function(err, result) {
+                    if (err) return res.status(200).json({
+                        "status": 200,
+                        "success": { "result" : false, "message" : "There was an error" },
+                        "data": null,
+                        "error": err
+                    });
+                    if (!result) return res.status(200).json({
+                        "status": 200,
+                        "success": { "result" : false, "message" : "User was not updated." },
+                        "data": null,
+                        "error": err
+                    });
+        
+                    res.status(200).json({
+                        "status": 200,
+                        "success": { "result" : true, "message" : "User was updated" },
+                        "data": req.body,
+                        "error": err
+                    });
+                });
+            });
+        }
+
+        if (req.body.type == "ageRanges") {
+            main.mongodb.usergeo(function(collection) {
+                collection.updateOne(
+                    {
+                        uid: req.body.userId
+                    },{
+                        $set: {    
+                            ageRanges: req.body.value
+                        }
+                    },{
+                        multi: true,
+                    }
+                , function(err, result) {
+                    if (err) return res.status(200).json({
+                        "status": 200,
+                        "success": { "result" : false, "message" : "There was an error" },
+                        "data": null,
+                        "error": err
+                    });
+                    if (!result) return res.status(200).json({
+                        "status": 200,
+                        "success": { "result" : false, "message" : "User was not updated." },
+                        "data": null,
+                        "error": err
+                    });
+        
+                    res.status(200).json({
+                        "status": 200,
+                        "success": { "result" : true, "message" : "User was updated" },
+                        "data": req.body,
+                        "error": err
+                    });
+                });
+            });
+        }
+
+        if (req.body.type == "initialSetup") {
+            main.mongodb.usergeo(function(collection) {
+                collection.updateOne(
+                    {
+                        uid: req.body.userId
+                    },{
+                        $set: {    
+                            initialSetup: req.body.value
+                        }
+                    },{
+                        multi: true,
+                    }
+                , function(err, result) {
+                    if (err) return res.status(200).json({
+                        "status": 200,
+                        "success": { "result" : false, "message" : "There was an error" },
+                        "data": null,
+                        "error": err
+                    });
+                    if (!result) return res.status(200).json({
+                        "status": 200,
+                        "success": { "result" : false, "message" : "User was not updated." },
+                        "data": null,
+                        "error": err
+                    });
+        
+                    res.status(200).json({
+                        "status": 200,
+                        "success": { "result" : true, "message" : "User was updated" },
+                        "data": req.body,
+                        "error": err
+                    });
+                });
+            });
+        }
+
+        if (req.body.type == "userType") {
+            main.mongodb.usergeo(function(collection) {
+                collection.updateOne(
+                    {
+                        uid: req.body.userId
+                    },{
+                        $set: {    
+                            type: req.body.value
+                        }
+                    },{
+                        multi: true,
+                    }
+                , function(err, result) {
+                    if (err) return res.status(200).json({
+                        "status": 200,
+                        "success": { "result" : false, "message" : "There was an error" },
+                        "data": null,
+                        "error": err
+                    });
+                    if (!result) return res.status(200).json({
+                        "status": 200,
+                        "success": { "result" : false, "message" : "User was not updated." },
+                        "data": null,
+                        "error": err
+                    });
+        
+                    res.status(200).json({
+                        "status": 200,
+                        "success": { "result" : true, "message" : "User was updated" },
+                        "data": req.body,
+                        "error": err
+                    });
+                });
+            });
+        }
+
+        if (req.body.type == "kidsCount") {
+            main.mongodb.usergeo(function(collection) {
+                collection.updateOne(
+                    {
+                        uid: req.body.userId
+                    },{
+                        $set: {    
+                            kidsCount: parseFloat(req.body.value)
+                        }
+                    },{
+                        multi: true,
+                    }
+                , function(err, result) {
+                    if (err) return res.status(200).json({
+                        "status": 200,
+                        "success": { "result" : false, "message" : "There was an error" },
+                        "data": null,
+                        "error": err
+                    });
+                    if (!result) return res.status(200).json({
+                        "status": 200,
+                        "success": { "result" : false, "message" : "User was not updated." },
+                        "data": null,
+                        "error": err
+                    });
+        
+                    res.status(200).json({
+                        "status": 200,
+                        "success": { "result" : true, "message" : "User was updated" },
+                        "data": req.body,
+                        "error": err
+                    });
+                });
+            });
+        }
+
+        if (req.body.type == "canSwipe") {
+            var date = new Date();
+            date.setDate(date.getDate() + 1);
+            main.mongodb.usergeo(function(collection) {
+                collection.updateOne(
+                    {
+                        uid: req.body.userId
+                    },{
+                        $set: {    
+                            canSwipe: req.body.value,
+                            nextSwipeDate: date
+                        }
+                    },{
+                        multi: true,
+                    }
+                , function(err, result) {
+                    if (err) return res.status(200).json({
+                        "status": 200,
+                        "success": { "result" : false, "message" : "There was an error" },
+                        "data": null,
+                        "error": err
+                    });
+                    if (!result) return res.status(200).json({
+                        "status": 200,
+                        "success": { "result" : false, "message" : "User was not updated." },
+                        "data": null,
+                        "error": err
+                    });
+
+                    req.body.nextSwipeDate = date;
+
+                    res.status(200).json({
+                        "status": 200,
+                        "success": { "result" : true, "message" : "User was updated" },
+                        "data": req.body,
+                        "error": err
+                    });
+                });
+            });
+        }
+
+        if (req.body.type == "linkedin") {
+            main.mongodb.usergeo(function(collection) {
+                collection.updateOne(
+                    {
+                        uid: req.body.userId
+                    },{
+                        $set: {    
+                            socialLinkedIn: req.body.value,
+                        }
+                    },{
+                        multi: true,
+                    }
+                , function(err, result) {
+                    if (err) return res.status(200).json({
+                        "status": 200,
+                        "success": { "result" : false, "message" : "There was an error" },
+                        "data": null,
+                        "error": err
+                    });
+                    if (!result) return res.status(200).json({
+                        "status": 200,
+                        "success": { "result" : false, "message" : "User was not updated." },
+                        "data": null,
+                        "error": err
+                    });
+        
+                    res.status(200).json({
+                        "status": 200,
+                        "success": { "result" : true, "message" : "User was updated" },
+                        "data": req.body,
+                        "error": err
+                    });
+                });
+            });
+        }
+
+        if (req.body.type == "instagram") {
+            main.mongodb.usergeo(function(collection) {
+                collection.updateOne(
+                    {
+                        uid: req.body.userId
+                    },{
+                        $set: {    
+                            socialInstagram: req.body.value
+                        }
+                    },{
+                        multi: true,
+                    }
+                , function(err, result) {
+                    if (err) return res.status(200).json({
+                        "status": 200,
+                        "success": { "result" : false, "message" : "There was an error" },
+                        "data": null,
+                        "error": err
+                    });
+                    if (!result) return res.status(200).json({
+                        "status": 200,
+                        "success": { "result" : false, "message" : "User was not updated." },
+                        "data": null,
+                        "error": err
+                    });
+        
+                    res.status(200).json({
+                        "status": 200,
+                        "success": { "result" : true, "message" : "User was updated" },
+                        "data": req.body,
+                        "error": err
+                    });
+                });
+            });
+        }
+
+        if (req.body.type == "facebook") {
+            main.mongodb.usergeo(function(collection) {
+                collection.updateOne(
+                    {
+                        uid: req.body.userId
+                    },{
+                        $set: {    
+                            socialFacebook: req.body.value
+                        }
+                    },{
+                        multi: true,
+                    }
+                , function(err, result) {
+                    if (err) return res.status(200).json({
+                        "status": 200,
+                        "success": { "result" : false, "message" : "There was an error" },
+                        "data": null,
+                        "error": err
+                    });
+                    if (!result) return res.status(200).json({
+                        "status": 200,
+                        "success": { "result" : false, "message" : "User was not updated." },
+                        "data": null,
+                        "error": err
+                    });
+        
+                    res.status(200).json({
+                        "status": 200,
+                        "success": { "result" : true, "message" : "User was updated" },
+                        "data": req.body,
+                        "error": err
+                    });
+                });
+            });
+        }
+
+        return res.status(200).json({
+            "status": 200,
+            "success": { "result" : false, "message" : "Property cannot be updated." },
+            "data": null,
+            "error": genericEmptyError
+        });
+
+    },
+
+    uploadPictureMongoDB: function(req, res) {
+        main.mongodb.usergeo(function(collection) {
+            collection.updateOne(
+                {
+                    uid: req.body.userId
+                },{
+                    $set: { 
                     }
                 },{
                     multi: true,
@@ -633,6 +2205,115 @@ module.exports = {
                     "error": err
                 });
             });
+        });
+    },
+
+    updateConversationMongoDB: function(req, res) {
+        if (!origin || origin !== "function") return res.status(200).json({
+            "status": 200,
+            "success": { "result" : false, "message" : "There was an error" },
+            "data": null,
+            "error": err
+        });
+        main.mongodb.convoscol(function(collection) {
+            collection.updateOne(
+                {
+                    id: req.body.conversationId
+                },{
+                    $set: {    
+                        lastMessage: req.body.message,
+                        updatedAt: req.body.createdAt
+                    }
+                },{
+                    multi: true,
+                }
+            , function(err, result) {
+                if (err) return res.status(200).json({
+                    "status": 200,
+                    "success": { "result" : false, "message" : "There was an error" },
+                    "data": null,
+                    "error": err
+                });
+                if (!result) return res.status(200).json({
+                    "status": 200,
+                    "success": { "result" : false, "message" : "User was not updated." },
+                    "data": null,
+                    "error": err
+                });
+    
+                res.status(200).json({
+                    "status": 200,
+                    "success": { "result" : true, "message" : "User was updated" },
+                    "data": req.body,
+                    "error": err
+                });
+            });
+        });
+    },
+
+    retrieveForMapMongoDB: function(req, res) {
+
+    },
+    // END MONGODB FUNCTIONS
+    
+    getUsers: function(req, res) {
+        retrieveAll(kUsers, function(success, error, data) {
+            var results = new Array();
+            data.forEach(function(doc) {
+                results.push(generateUserModel(doc.data()));
+            });
+            handleJSONResponse(200, error, success, { "users": results }, res);
+        });
+    },
+
+    getUserWithId: function(req, res) {
+        checkForUser(id, function(success, error, result) {
+            if (result !== null) {
+                var userData = generateUserModel(result);
+                console.log("getUserWithId result is not null ", userData);
+                var data = { "user": userData };
+                handleJSONResponse(200, error, success, data, res);;
+            } else {
+                handleJSONResponse(200, error, success, null, res);
+            }
+        });     
+    },
+
+    getGroupMessages: function(req, res) {
+        main.firebase.firebase_firestore_db(function(reference) {
+            if (!reference) { 
+                callback(genericFailure, genericError, null);
+            } else {
+                var ref = reference.collection(kUsers);        
+                var query = ref.where('uid','==', uid);
+                query.get().then(function(querySnapshot) {
+                    var data = querySnapshot.docs.map(function(doc) {
+                        var d = doc.data();
+                        d.key = doc.id;
+                        return d;
+                    });
+                    if (Object.keys(data).length > 0) {
+                        callback(genericSuccess, null, data[0]);
+                    } else {
+                        callback(genericFailure, genericError, null);
+                    }
+                }, function(err) {
+                    if (err) {
+                        console.log(err);
+                        callback(genericFailure, err, null);
+                    }
+                });
+            }
+        });
+    },
+
+    createUser: function(req, res) {
+        var object = createEmptyUserObject(req.body.email, req.body.name, req.body.uid, req.body.type, req.body.kidsCount, req.body.maritalStatus, req.body.linkedin, req.body.facebook, req.body.instagram, req.body.ageRanges, req.body.kidsNames);
+        addFor(kUsers, object, function (success, error, document) {
+            updateFor(kUsers, document.id, { "key": document.id }, function (success, error, data) {
+                var data = { "userId": document.id }
+                handleJSONResponse(200, error, success, data, res);
+            })
         });
     },
 
@@ -855,38 +2536,6 @@ module.exports = {
         });
     },
 
-    getMessagesInConversation: function(id, res) {
-        //  Check if I already have a conversation started
-        checkForMessages(id, function(success, error, messages) {
-            console.log(messages);
-            var messagesArray = new Array();
-            if (messages === null) {
-                var data = { "messages": messagesArray};
-                handleJSONResponse(200, error, success, data, res);
-            } else {
-                messages.forEach(function(doc) {
-                    messagesArray.push(doc.data());
-                });
-                var data = { "messages": messagesArray};
-                if (messages.size >= 1) {
-                    handleJSONResponse(200, error, success, data, res);
-                } else {
-                    handleJSONResponse(200, error, success, data, res);
-                }
-            }
-        });
-    },
-
-    sendMessage: function(req, res) {
-        var object = createMessageObject(req.body.conversationId, req.body.message, req.body.senderId);
-        add(kMessages, object, function (success, error, data, id) {
-            console.log(id);
-            updateFor(kConversations, req.body.conversationKey, { "lastMessageId" : id, "updatedAt" : new Date() }, function (success, error, data) {
-                handleJSONResponse(200, error, success, data, res);
-            });
-        });
-    },
-
     updateConversation: function(req, res) {
         updateFor(kConversations, req.body.conversationKey, { "lastMessageId" : req.body.messageId, "updatedAt" : new Date() }, function (success, error, data) {
             handleJSONResponse(200, error, success, data, res);
@@ -1049,122 +2698,59 @@ module.exports = {
             });
         });
     },
-    
-    saveLocationMongoDB: function(req, res) {
-        var userGeohash = geohash.encode(req.body.latitude, req.body.longitude, 10);
-        main.mongodb.usergeo(function(collection) {
-            collection.updateOne(
-                {
-                    "userId": req.body.userId
-                },{
-                    $set: {
-                        userId : req.body.userId,
-                        h: userGeohash,
-                        location: {
-                            type: "Point", 
-                            coordinates: [ parseFloat(req.body.longitude), parseFloat(req.body.latitude) ]
-                        }
+
+    saveLocation: function(req, res) {
+        // main.firebase.generate_geopoint(parseFloat(req.body.latitude), parseFloat(req.body.longitude), function(geopoint) {
+        //     var data = geopoint;
+        //     data["addressLat"] = parseFloat(req.body.latitude);
+        //     data["addressLong"] = parseFloat(req.body.longitude);
+        //     data["addressState"] = req.body.addressState || "";
+        //     data["addressCity"] = req.body.addressCity || "";
+        //     data["addressCountry"] = req.body.addressCountry || ""; 
+        //     data["addressZipCode"] = req.body.addressZipCode || "";
+        //     updateFor(kUsers, req.body.userId, data, function (success, error, data) {
+        //         handleJSONResponse(200, error, success, data, res);
+        //     });
+        // });       
+    },
+
+    deleteUser: function(req, res) {
+        deleteFor(kUsers, req.body.userId, function (success, error, data) {
+            handleJSONResponse(200, error, success, data, res);
+        });
+    },
+
+    getNearByUsers: function(req, res) {
+        main.firebase.firebase_geo(function(geo) {
+            main.firebase.generate_geopoint(Number(req.body.latitude), Number(req.body.longitude), function(center) {
+
+                // Proof of concept
+                const geocollection = geo.collection(kUsers);
+                console.log(center);
+                var queryOne = geocollection.near({ center: center, radius: 1000 });
+                queryOne.orderedBy('uid');
+                queryOne.limit(10);
+
+                // Get query (as Promise)
+                queryOne.get().then(function(querySnapshot) {
+                    var data = querySnapshot.docs.map(function(doc) {
+                        var d = doc.data();
+                        d.key = doc.id;
+                        return d;
+                    });
+                    if (Object.keys(data).length > 0) {
+                        var return_data = { "user": data[0] };
+                        handleJSONResponse(200, null, genericSuccess, return_data, res);
+                    } else {
+                        handleJSONResponse(200, genericFailure, genericError, null, res);
                     }
-                },{
-                    multi: true,
-                    upsert: true
-                }
-            , function(error, result) {
-                var data = {
-                    "count": 0,
-                    "results": result,
-                }
-                var success;
-                if (!error) {
-                    success = genericSuccess;
-                } else {
-                    success = genericFailure;
-                }
-                handleJSONResponse(200, error, success, data, res);
-            });
-        });
-    },
-
-    deleteAllMongoUserGeoElements: function(req, res) {
-        main.mongodb.usergeo(function(collection) {
-            collection.deleteMany(function(error, result) {
-                var data = {
-                    "count": 0,
-                    "results": result,
-                }
-                var success;
-                if (!error) {
-                    success = genericSuccess;
-                } else {
-                    success = genericFailure;
-                }
-                handleJSONResponse(200, error, success, data, res);
-            });
-        });
-    },
-
-    deleteGeosBut: function(req, res) {
-        main.mongodb.usergeo(function(collection) {
-            collection.deleteMany(
-                {
-                    _id: {
-                        $nin: [req.body.ids.map(function(id) {
-                            return 'ObjectId("'+ id +'")';
-                        })]
+                }, function(err) {
+                    if (err) {
+                        console.log(err);
+                        callback(genericFailure, err, null);
+                        handleJSONResponse(200, genericFailure, err, null, res);
                     }
-                }, function(error, result) {
-                var data = {
-                    "count": 0,
-                    "results": result,
-                }
-                var success;
-                if (!error) {
-                    success = genericSuccess;
-                } else {
-                    success = genericFailure;
-                }
-                handleJSONResponse(200, error, success, data, res);
-            });
-        });
-    },
-
-    deleteGeo: function(req, res) {
-        var id = 'ObjectId("'+req.body.id+'")';
-        console.log(id);
-        main.mongodb.usergeo(function(collection) {
-            collection.deleteOne(
-                {
-                    "_id": id,
-                }, function(error, result) {
-                var data = {
-                    "count": 0,
-                    "results": result,
-                }
-                var success;
-                if (!error) {
-                    success = genericSuccess;
-                } else {
-                    success = genericFailure;
-                }
-                handleJSONResponse(200, error, success, data, res);
-            });
-        });
-    },
-
-    deleteAllMongoActionElements: function(req, res) {
-        main.mongodb.actioncol(function(collection) {
-            collection.deleteMany(function(error, result) {
-                var data = {
-                    "count": 0,
-                    "results": result,
-                }
-                var success;
-                if (!error) {
-                    success = genericSuccess;
-                } else {
-                    success = genericFailure;
-                }
-                handleJSONResponse(200, error, success, data, res);
+                });
             });
         });
     }
@@ -1272,19 +2858,23 @@ function createConversationObject(senderId, recipientId) {
         id: randomstring.generate(25),
         createdAt: new Date(),
         updatedAt: new Date(),
-        senderId: senderId,
-        recipientId: recipientId,
+        owner: senderId,
+        participants: [senderId, recipientId],
         lastMessageId: null
     }
     return data
 }
 
-function createMatchObject(senderId, recipientId) {
+function createEmptyActionObject(uid) {
     var data = {
-        _id: senderId,
+        id: randomstring.generate(25),
+        owner: uid,
         createdAt: new Date(),
-        matches: [recipientId],
-        blocked: []
+        updatedAt: new Date(),
+        likes: [],
+        matches: [],
+        blocked: [],
+        conversations: [],
     }
     return data
 }
@@ -1590,15 +3180,33 @@ function generateUserModel(doc) {
         lastId: doc.lastId,
         matches: doc.matches,
     }
+    if (doc.actions_results && doc.actions_results.length > 0) {
+        data.actions_results = generateActionModel(doc.actions_results[0])
+    }
     return data
 }
 
-function generateConversationModel(document, doc) {
-    var data = { 
-        key: document.id,
+function generateActionModel(doc) {
+    var data = {
+        _id: doc._id,
         id: doc.id,
-        senderId: doc.senderId,
-        recipientId: doc.recipientId,
+        owner: doc.owner,
+        createdAt: doc.createdAt,
+        updatedAt: doc.updatedAt,
+        likes: doc.likes,
+        matches: doc.matches,
+        blocked: doc.blocked,
+        conversations: doc.conversations,
+    }
+    return data
+}
+
+function generateConversationModel(doc) {
+    var data = { 
+        _id: doc._id,
+        id: doc.id,
+        owner: doc.senderId,
+        participants: doc.participants,
         createdAt: doc.createdAt,
         lastMessageId: doc.lastMessageId,
         updatedAt: doc.updatedAt
@@ -1632,53 +3240,5 @@ function generateEmptyMessageModel() {
 
 //  MARK:- Useful functions
 function getMeters(fromMiles) {
-    return fromMiles * 1609.344
+    return fromMiles * 1609.344;
 }
-
-
-/*var success;
-if (docs.length > 0) {
-    success = genericSuccess;
-    var results = new Array;
-    async.each(docs, function(doc, completion) {
-        checkForUser(doc.userId, function(success, error, documents) {
-            if (documents.length >= 1) {
-                var snapshotArray = new Array();
-                documents.forEach(function(document) {
-                    snapshotArray.push(generateUserModel(document[0]));
-                });
-                if (snapshotArray[0].mediaArray[0].url !== null) {
-                    results.push(snapshotArray[0]);
-                }
-                return completion();
-            } else {
-                return completion();
-            }
-        });
-    }, function(err) {
-        if (err) {
-            console.log(err);
-            return handleJSONResponse(200, err, success, data, res);
-        } else {
-            var count = results.length
-            var data = {
-                "count": count,
-                "current": pageNo,
-                "pages": Math.ceil(count / size)
-            }
-            data.users = results;
-            if (results.length > 0) {
-                return handleJSONResponse(200, null, success, data, res);
-            } else {
-                return handleJSONResponse(200, genericError, genericFailure, data, res);
-            }
-        }
-    });
-} else {
-    success = genericFailure;
-    return handleJSONResponse(200, error, success, data, res);
-}*/
-
-// userId: {
-//     $ne: req.body.userId
-// }

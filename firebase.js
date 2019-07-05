@@ -5,12 +5,14 @@ var admin               = require('firebase-admin');
 var configs             = require('./configs');
 var serviceAccount      = require(configs.firstoragefilename);  //  MARK:- Uncomment and provide url to service account .json file.
 const {Storage}         = require('@google-cloud/storage');
+const { GeoCollectionReference, GeoFirestore, GeoQuery, GeoQuerySnapshot } = require('geofirestore');
 
 require("firebase/auth");
 require("firebase/database");
 require("firebase/messaging");
 require("firebase/functions");
 require("firebase/storage");
+require("firebase/firestore");
 
 //  MARK:- Setup Firebase App
 var firebaseObj;
@@ -18,6 +20,7 @@ var firebaseAdmin;
 var firbaseStorage;
 var firebaseFirestoreDB; 
 var firebaseRealtimeDB;
+var firebaseGeo; 
 
 var settings = { timestampsInSnapshots: true };
 var firebase_configuration = {
@@ -63,6 +66,32 @@ function setupFirebaseStorage(callback) {
         projectId: configs.firebaseProjectId,
         keyFilename: configs.firstoragefilename
     });
+    callback();
+}
+
+function setupGeoFireClass(callback) {
+    const firestore = firebase.firestore();
+    firebaseGeo = new GeoFirestore(firestore);
+
+    // Proof of concept
+    // const geocollection = firebaseGeo.collection('users');
+    // var query = geocollection.near({ center: new firebase.firestore.GeoPoint(33.89954421085915, -84.45787855035809), radius: 1000 });
+    // query.where('createdAt', '>', 'oNztYoxoNsj44NQYeh5D');
+    // query.limit(10);
+    // Get query (as Promise)
+    // query.get().then(function(value) {
+    //     console.log(value.docs.length);
+    // });
+
+    callback();
+}
+
+function generateGeopoint(lat, long, callback) {
+    const point = new admin.firestore.GeoPoint(lat, long);
+    callback({
+        g: geohash.encode(lat, long, 10),
+        l: point
+    })
 }
 
 module.exports.setup = function firebaseSetup() {
@@ -82,6 +111,9 @@ module.exports.setup = function firebaseSetup() {
     setupFirebaseStorage(function() {
         console.log('Completed setting up base firebase storage app');
     });
+    setupGeoFireClass(function() {
+        console.log('Completed setting up base geoFire object');
+    });
 };
 module.exports.firebase_main = function returnFirebaseMainObject(callback) {
     callback(firebaseObj);
@@ -98,5 +130,13 @@ module.exports.firebase_auth = function setupAuth(callback) {
 }
 module.exports.firebase_storage = function setupStorage(callback) {
     callback(firbaseStorage.bucket(configs.firstoragebucket));
+}
+module.exports.firebase_geo = function setupGeoFire(callback) {
+    callback(firebaseGeo);
+}
+module.exports.generate_geopoint = function generate_Geopoint(lat, long, callback) {
+    generateGeopoint(lat, long, function(point) {
+        callback(point);
+    })
 }
 // module.exports.firebase_storage_bucket = firPrimaryStorageBucket;

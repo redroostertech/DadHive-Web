@@ -25,17 +25,6 @@ module.exports.setup = function setup() {
     setupMongoClient(function(success) {
         if (success) {
             console.log("Successfully set up mongo client");
-            // var db = moClient.db('dadhive-main-20193f0912h309');
-            // var collection = db.collection('user-geo');
-            // collection.insertMany([
-            //     {a : 1}, {a : 2}, {a : 3}
-            // ], function(err, result) {
-            //     assert.equal(err, null);
-            //     assert.equal(3, result.result.n);
-            //     assert.equal(3, result.ops.length);
-            //     console.log("Inserted 3 documents into the collection");
-            //     console.log(result);
-            // });
         } else {
             console.log("Unsuccessfully set up mongo client");
         }
@@ -47,19 +36,25 @@ module.exports.mongodb_client = function returnMongoDBMainObject(callback) {
 }
 
 module.exports.usergeo = function returnMongoUserGeoDB(callback) {
-    var db = moClient.db('dadhive-main-20193f0912h309');
+    var db = moClient.db(configs.mongoid);
     var collection = db.collection('user-geo');
     callback(collection);
 }
 
 module.exports.actioncol = function returnMongoUserGeoDB(callback) {
-    var db = moClient.db('dadhive-main-20193f0912h309');
+    var db = moClient.db(configs.mongoid);
     var collection = db.collection('action');
     callback(collection);
 }
 
 module.exports.mapitemcol = function returnMongoMapItemGeoDB(callback) {
-    var db = moClient.db('dadhive-main-20193f0912h309');
+    var db = moClient.db(configs.mongoid);
     var collection = db.collection('map-items');
+    callback(collection);
+}
+
+module.exports.convoscol = function returnMongoUserGeoDB(callback) {
+    var db = moClient.db(configs.mongoid);
+    var collection = db.collection('conversations');
     callback(collection);
 }

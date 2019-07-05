@@ -10,6 +10,7 @@ module.exports = {
     baseRoutes: path.join(__dirname, '/routes/'),
     baseViews: path.join(__dirname, '/views/'),
     mongoUrl: 'mongodb://dadhive-ad:'+encodeURIComponent('Z@r@rox6')+'@dadhive-cluster-sm-shard-00-00-1io7q.mongodb.net:27017,dadhive-cluster-sm-shard-00-01-1io7q.mongodb.net:27017,dadhive-cluster-sm-shard-00-02-1io7q.mongodb.net:27017/test?ssl=true&replicaSet=DadHive-Cluster-sm-shard-0&authSource=admin&retryWrites=true/dadhive-main-20193f0912h309',
+    mongoid: 'dadhive-main-20193f0912h309',
     secret: 'wjiofn349w84h93w8hg4nilrwubg4p983h402pqh',
     nodemailusr: "thedadhive@gmail.com",
     nodemailpass: "Kountdown123",

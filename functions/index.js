@@ -41,25 +41,27 @@ exports.updateUserLocation = functions.firestore.document('users/{userId}').onUp
     });
 });
 
-
-// exports.updateUserLocation = functions.https.onRequest(async (req, res) => {
-//     console.log(req.body);
-//     request.post('https://dadhive-test.herokuapp.com/api/v1/updateUserLocation', {
-//         json: {
-//             latitude: req.body.latitude,
-//             longitude: req.body.longitude,
-//             userId: req.body.userId,
-//         }
-//     }, (error, response, body) => {
-//         if (error) {
-//             console.error(error)
-//             return
-//         }
-//         res.status(200).json({
-//             "status": 200,
-//             "success": { "result" : true, "message" : "Request was successful" },
-//             "data": body,
-//             "error": null
-//         });
-//     });
-// });
+exports.updateConversation = functions.database.ref('/messages/{pushId}/').onCreate((snapshot, context) => {
+        
+    var original = snapshot.val();
+    console.log(original);
+    request.post('https://dadhive-test.herokuapp.com/api/v1/updateConversation', {
+        json: {
+            origin: "function",
+            conversationId: original.conversationId,
+            message: original.message,
+            createdAt: original.createdAt,
+        }
+    }, (error, response, body) => {
+        if (error) {
+            console.error(error)
+            return null;
+        }
+        res.status(200).json({
+            "status": 200,
+            "success": { "result" : true, "message" : "Request was successful" },
+            "data": body,
+            "error": null
+        });
+    });
+});
