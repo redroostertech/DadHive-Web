@@ -1523,6 +1523,43 @@ module.exports = {
     },
 
     editUserMongoDB: function(req, res) {
+
+        if (req.body.type == "notifications") {
+            main.mongodb.usergeo(function(collection) {
+                collection.updateOne(
+                    {
+                        uid: req.body.userId
+                    },{
+                        $set: {    
+                            notifications: req.body.value
+                        }
+                    },{
+                        multi: true,
+                    }
+                , function(err, result) {
+                    if (err) return res.status(200).json({
+                        "status": 200,
+                        "success": { "result" : false, "message" : "There was an error" },
+                        "data": null,
+                        "error": err
+                    });
+                    if (!result) return res.status(200).json({
+                        "status": 200,
+                        "success": { "result" : false, "message" : "User was not updated." },
+                        "data": null,
+                        "error": err
+                    });
+        
+                    res.status(200).json({
+                        "status": 200,
+                        "success": { "result" : true, "message" : "User was updated" },
+                        "data": req.body,
+                        "error": err
+                    });
+                });
+            });
+        }
+
         if (req.body.type == "name") {
             main.mongodb.usergeo(function(collection) {
                 collection.updateOne(
@@ -2148,6 +2185,78 @@ module.exports = {
                     },{
                         $set: {    
                             socialFacebook: req.body.value
+                        }
+                    },{
+                        multi: true,
+                    }
+                , function(err, result) {
+                    if (err) return res.status(200).json({
+                        "status": 200,
+                        "success": { "result" : false, "message" : "There was an error" },
+                        "data": null,
+                        "error": err
+                    });
+                    if (!result) return res.status(200).json({
+                        "status": 200,
+                        "success": { "result" : false, "message" : "User was not updated." },
+                        "data": null,
+                        "error": err
+                    });
+        
+                    res.status(200).json({
+                        "status": 200,
+                        "success": { "result" : true, "message" : "User was updated" },
+                        "data": req.body,
+                        "error": err
+                    });
+                });
+            });
+        }
+
+        if (req.body.type == "currentPage") {
+            main.mongodb.usergeo(function(collection) {
+                collection.updateOne(
+                    {
+                        uid: req.body.userId
+                    },{
+                        $set: {    
+                            currentPage: req.body.value
+                        }
+                    },{
+                        multi: true,
+                    }
+                , function(err, result) {
+                    if (err) return res.status(200).json({
+                        "status": 200,
+                        "success": { "result" : false, "message" : "There was an error" },
+                        "data": null,
+                        "error": err
+                    });
+                    if (!result) return res.status(200).json({
+                        "status": 200,
+                        "success": { "result" : false, "message" : "User was not updated." },
+                        "data": null,
+                        "error": err
+                    });
+        
+                    res.status(200).json({
+                        "status": 200,
+                        "success": { "result" : true, "message" : "User was updated" },
+                        "data": req.body,
+                        "error": err
+                    });
+                });
+            });
+        }
+
+        if (req.body.type == "lastId") {
+            main.mongodb.usergeo(function(collection) {
+                collection.updateOne(
+                    {
+                        uid: req.body.userId
+                    },{
+                        $set: {    
+                            lastId: req.body.value
                         }
                     },{
                         multi: true,
