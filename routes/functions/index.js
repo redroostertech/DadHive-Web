@@ -811,21 +811,35 @@ module.exports = {
                         owner: req.body.userId
                     }
                 },{ 
-                    $unwind: "$conversations" 
+                    $unwind: "$conversations"
                 },{
                     $lookup: {
                         from: "conversations",
                         localField: "conversations",
                         foreignField: "id",
-                        as: "conversations"
+                        as: "conversation"
+                    }
+                },{ 
+                    $unwind: "$conversation",
+                    $unwind: {
+                        "path": "$conversation.participants",
+                        "preserveNullAndEmptyArrays": true
                     }
                 },{
+                    $lookup: {
+                        from: "user-geo",
+                        localField: "conversation.participants",
+                        foreignField: "uid",
+                        as: "participants"
+                    }
+                }, {
                     $group: {
-                        _id: null,
-                        conversations: { $push: "$conversations" }
+                        conversationId: "$_id",
+                        participants: { "$push": "$participants" },
                     }
                 }
             ).toArray(function(err, result) {
+
                 if (err) return res.status(200).json({
                     "status": 200,
                     "success": { "result" : false, "message" : "There was an error" },
@@ -841,7 +855,17 @@ module.exports = {
                 });
 
                 function getConversationModel(object) {
-                    return generateConversationModel(object.conversations[0]);
+                    var newObject = {
+                        conversation: object.conversation[0],
+                        participants: object.participants.map(getUserFromConversation)
+                    }
+                    console.log(newObject);
+                    console.log('--------------');
+                    return newObject;
+                }
+
+                function getUserFromConversation(object) {
+                    return generateUserModel(object);
                 }
 
                 res.status(200).json({
@@ -849,7 +873,7 @@ module.exports = {
                     "success": { "result" : true, "message" : "Request was successful" },
                     "data": {
                         "count": result.length,
-                        "conversations": result.map(getConversationModel),
+                        "data": result.map(getConversationModel),
                     },
                     "error": err
                 });
@@ -919,7 +943,7 @@ module.exports = {
             // MARK :- Check if a conversation already exists.
             collection.findOne({
                 participants: {
-                    $in: [req.body.senderId, req.body.recipientId]
+                    $all: [req.body.senderId, req.body.recipientId]
                 }
             }, function(err, docs) {
                 if (err) return res.status(200).json({
@@ -995,6 +1019,7 @@ module.exports = {
                         });
                     });
                 } else {
+                    console.log(docs);
                     res.status(200).json({
                         "status": 200,
                         "success": { "result" : false, "message" : "Conversation already exists." },
@@ -2285,6 +2310,222 @@ module.exports = {
             });
         }
 
+        if (req.body.type == "userProfilePicture_1") {
+            main.mongodb.usergeo(function(collection) {
+                collection.updateOne(
+                    {
+                        uid: req.body.userId
+                    },{
+                        $set: {    
+                            userProfilePicture_1_url: req.body.value
+                        }
+                    },{
+                        multi: true,
+                    }
+                , function(err, result) {
+                    if (err) return res.status(200).json({
+                        "status": 200,
+                        "success": { "result" : false, "message" : "There was an error" },
+                        "data": null,
+                        "error": err
+                    });
+                    if (!result) return res.status(200).json({
+                        "status": 200,
+                        "success": { "result" : false, "message" : "User was not updated." },
+                        "data": null,
+                        "error": err
+                    });
+        
+                    res.status(200).json({
+                        "status": 200,
+                        "success": { "result" : true, "message" : "User was updated" },
+                        "data": req.body,
+                        "error": err
+                    });
+                });
+            });
+        }
+        
+        if (req.body.type == "userProfilePicture_2") {
+            main.mongodb.usergeo(function(collection) {
+                collection.updateOne(
+                    {
+                        uid: req.body.userId
+                    },{
+                        $set: {    
+                            userProfilePicture_2_url: req.body.value
+                        }
+                    },{
+                        multi: true,
+                    }
+                , function(err, result) {
+                    if (err) return res.status(200).json({
+                        "status": 200,
+                        "success": { "result" : false, "message" : "There was an error" },
+                        "data": null,
+                        "error": err
+                    });
+                    if (!result) return res.status(200).json({
+                        "status": 200,
+                        "success": { "result" : false, "message" : "User was not updated." },
+                        "data": null,
+                        "error": err
+                    });
+        
+                    res.status(200).json({
+                        "status": 200,
+                        "success": { "result" : true, "message" : "User was updated" },
+                        "data": req.body,
+                        "error": err
+                    });
+                });
+            });
+        }
+
+        if (req.body.type == "userProfilePicture_3") {
+            main.mongodb.usergeo(function(collection) {
+                collection.updateOne(
+                    {
+                        uid: req.body.userId
+                    },{
+                        $set: {    
+                            userProfilePicture_3_url: req.body.value
+                        }
+                    },{
+                        multi: true,
+                    }
+                , function(err, result) {
+                    if (err) return res.status(200).json({
+                        "status": 200,
+                        "success": { "result" : false, "message" : "There was an error" },
+                        "data": null,
+                        "error": err
+                    });
+                    if (!result) return res.status(200).json({
+                        "status": 200,
+                        "success": { "result" : false, "message" : "User was not updated." },
+                        "data": null,
+                        "error": err
+                    });
+        
+                    res.status(200).json({
+                        "status": 200,
+                        "success": { "result" : true, "message" : "User was updated" },
+                        "data": req.body,
+                        "error": err
+                    });
+                });
+            });
+        }
+
+        if (req.body.type == "userProfilePicture_4") {
+            main.mongodb.usergeo(function(collection) {
+                collection.updateOne(
+                    {
+                        uid: req.body.userId
+                    },{
+                        $set: {    
+                            userProfilePicture_4_url: req.body.value
+                        }
+                    },{
+                        multi: true,
+                    }
+                , function(err, result) {
+                    if (err) return res.status(200).json({
+                        "status": 200,
+                        "success": { "result" : false, "message" : "There was an error" },
+                        "data": null,
+                        "error": err
+                    });
+                    if (!result) return res.status(200).json({
+                        "status": 200,
+                        "success": { "result" : false, "message" : "User was not updated." },
+                        "data": null,
+                        "error": err
+                    });
+        
+                    res.status(200).json({
+                        "status": 200,
+                        "success": { "result" : true, "message" : "User was updated" },
+                        "data": req.body,
+                        "error": err
+                    });
+                });
+            });
+        }
+
+        if (req.body.type == "userProfilePicture_5") {
+            main.mongodb.usergeo(function(collection) {
+                collection.updateOne(
+                    {
+                        uid: req.body.userId
+                    },{
+                        $set: {    
+                            userProfilePicture_5_url: req.body.value
+                        }
+                    },{
+                        multi: true,
+                    }
+                , function(err, result) {
+                    if (err) return res.status(200).json({
+                        "status": 200,
+                        "success": { "result" : false, "message" : "There was an error" },
+                        "data": null,
+                        "error": err
+                    });
+                    if (!result) return res.status(200).json({
+                        "status": 200,
+                        "success": { "result" : false, "message" : "User was not updated." },
+                        "data": null,
+                        "error": err
+                    });
+        
+                    res.status(200).json({
+                        "status": 200,
+                        "success": { "result" : true, "message" : "User was updated" },
+                        "data": req.body,
+                        "error": err
+                    });
+                });
+            });
+        }
+
+        if (req.body.type == "userProfilePicture_6") {
+            main.mongodb.usergeo(function(collection) {
+                collection.updateOne(
+                    {
+                        uid: req.body.userId
+                    },{
+                        $set: {    
+                            userProfilePicture_6_url: req.body.value
+                        }
+                    },{
+                        multi: true,
+                    }
+                , function(err, result) {
+                    if (err) return res.status(200).json({
+                        "status": 200,
+                        "success": { "result" : false, "message" : "There was an error" },
+                        "data": null,
+                        "error": err
+                    });
+                    if (!result) return res.status(200).json({
+                        "status": 200,
+                        "success": { "result" : false, "message" : "User was not updated." },
+                        "data": null,
+                        "error": err
+                    });
+        
+                    res.status(200).json({
+                        "status": 200,
+                        "success": { "result" : true, "message" : "User was updated" },
+                        "data": req.body,
+                        "error": err
+                    });
+                });
+            });
+        }
+
         return res.status(200).json({
             "status": 200,
             "success": { "result" : false, "message" : "Property cannot be updated." },
@@ -2330,7 +2571,7 @@ module.exports = {
                     id: req.body.conversationId
                 },{
                     $set: {    
-                        lastMessage: req.body.message,
+                        lastMessageText: req.body.message,
                         updatedAt: req.body.createdAt
                     }
                 },{
@@ -2969,7 +3210,8 @@ function createConversationObject(senderId, recipientId) {
         updatedAt: new Date(),
         owner: senderId,
         participants: [senderId, recipientId],
-        lastMessageId: null
+        lastMessageId: null,
+        lastMessageText: null,
     }
     return data
 }
