@@ -1,22 +1,21 @@
 'use strict';
 
 const express           = require('express');
-const bcrypt            = require('bcryptjs');
 const bodyParser        = require('body-parser');
 const path              = require('path');
 const firebase          = require('./firebase.js');
-const aws               = require('./aws.js');
+const mongodb           = require('./mongodb.js');
 const configs           = require('./configs');
-const fs                = require('fs');
 const session           = require('client-sessions');
 const nodemailer        = require('nodemailer');
 const randomstring      = require('randomstring');
-const xoauth2           = require('xoauth2');
 const NodeCache         = require('node-cache');
+const middleware        = require('./middleware');
+const _                 = require('underscore');
+const jwt               = require('jsonwebtoken');
 
 var oneDay              = configs.oneDay;
 var port                = process.env.PORT || configs.port;
-var jwtsec              = process.env.JWT_SECRET || configs.secret;
 var nodemailerUsr       = process.env.NODEMAIL_USR || configs.nodemailusr;
 var nodemailerPass      = process.env.NODEMAIL_PSW || configs.nodemailpass;
 var nodemailerClientID  = process.env.NODEMAIL_CLIENT || configs.nodemailerclientid;
@@ -50,9 +49,9 @@ var transporter = nodemailer.createTransport({
     auth: {
         type: 'OAuth2',
         user: nodemailerUsr,
-        clientId: nodemailerClientID,
-        clientSecret: nodemailerClientSecret,
-        refreshToken: nodemailerClientToken
+        clientId: "169871664069-v7qfip8fn8sb1q0leh0kqlgeo8egojfk.apps.googleusercontent.com",
+        clientSecret: "cDOqXWb93FojAXok0ODdSqh2",
+        refreshToken: "1/humTDmtJl9G9aDM55K8QX78VkRsZ2fuH5wRDl7kfASQ"
     }
 });
 
@@ -67,9 +66,115 @@ app.all('/data/*', function(req, res) {
     res.sendStatus(404);
 });
 
+// app.get('/', function(req, res) {
+//     res.status('200').render('index');
+// });
+
 app.get('/', function(req, res) {
-    res.status('200').render('index');
+
+    let session = req.DadHiveiwo3ihn2o3in2goi3bnoi;
+    let sessionCheckValue = !(_.isEmpty(session)) && (session !== null || typeof session !== 'undefined')
+  
+    if (sessionCheckValue) {
+        res.redirect('/home');
+    } else {
+        res.status('200').render('index_v1', {
+            "message" : "Test POST request.",
+            "page" : {
+                "title": "DadHive",
+                "session": {
+                    "isSessionActive": sessionCheckValue,
+                    "data": req.DadHiveiwo3ihn2o3in2goi3bnoi
+                }
+            }
+        });
+    }
 });
+
+app.get('/login', function(req, res) {
+    
+    let session = req.DadHiveiwo3ihn2o3in2goi3bnoi;
+    let sessionCheckValue = !(_.isEmpty(session)) && (session !== null || typeof session !== 'undefined')
+  
+    if (sessionCheckValue) {
+        res.redirect('/home');
+    } else {
+        res.status('200').render('login', {
+            "message" : "Test GET request.",
+            "page" : {
+                "title": "DadHive",
+                "session": {
+                    "isSessionActive": sessionCheckValue,
+                    "data": req.DadHiveiwo3ihn2o3in2goi3bnoi
+                }
+            }
+        });
+    }
+});
+
+app.get('/register', function(req, res) {
+    
+    let session = req.DadHiveiwo3ihn2o3in2goi3bnoi;
+    let sessionCheckValue = !(_.isEmpty(session)) && (session !== null || typeof session !== 'undefined')
+
+    if (sessionCheckValue) {
+        res.redirect('/home');
+    } else {
+        res.status('200').render('register_v1', {
+            "message" : "Test GET request.",
+            "page" : {
+                "title": "DadHive",
+                "session": {
+                    "isSessionActive": sessionCheckValue,
+                    "data": req.DadHiveiwo3ihn2o3in2goi3bnoi
+                }
+            }
+        });
+    }
+});
+
+app.get('/home', function(req, res) {
+    
+    
+    let session = req.DadHiveiwo3ihn2o3in2goi3bnoi;
+    let sessionCheckValue = !(_.isEmpty(session)) && (session !== null || typeof session !== 'undefined')
+  
+    if (sessionCheckValue) {
+        res.status('200').render('home', {
+            "message" : "Test GET request.",
+            "page" : {
+                "title": "DadHive",
+                "session": {
+                    "isSessionActive": sessionCheckValue,
+                    "data": req.DadHiveiwo3ihn2o3in2goi3bnoi
+                }
+            }
+        });
+    } else {
+        res.redirect('/');
+    }
+});
+
+// app.get('/listings', function(req, res) {
+    
+//     let session = req.DadHiveiwo3ihn2o3in2goi3bnoi;
+//     let sessionCheckValue = !(_.isEmpty(session)) && (session !== null || typeof session !== 'undefined')
+  
+//     if (sessionCheckValue) {
+//         res.status('200').render('listings', {
+//             "message" : "Test GET request.",
+//             "page" : {
+//                 "title": "DadHive",
+//                 "session": {
+//                     "isSessionActive": sessionCheckValue,
+//                     "data": req.DadHiveiwo3ihn2o3in2goi3bnoi
+//                 }
+//             }
+//         });
+//     } else {
+//         res.redirect('/');
+//     }
+// });
 
 app.get('/privacy', function(req, res) {
     res.json({
@@ -85,18 +190,6 @@ app.get('/tos', function(req, res) {
 
 app.get('/submitquestion', function(req, res){
     res.status('200').render('submitquestion');
-});
-
-app.get('/preregister', function(req, res){
-    res.status('200').render('preregister');
-});
-
-app.get('/register', function(req, res){
-    if (isLive === true || isLive === "true") {
-        res.status('200').render('register');
-    } else {
-        res.redirect('/');
-    }
 });
 
 //  API
@@ -254,58 +347,26 @@ app.get('/sessioncheck', function(req, res){
 
 //  AUTHCONTROLLER
 app.post('/register', function(req, res) {
-    var userId = randomstring.generate(10)
-    firebase.auth().createUserWithEmailAndPassword(req.body.uemail, req.body.upswd).then(function() {
-        var userObj = {
-            uid: userId,
-            uname: req.body.uname,
-            uemail: req.body.uemail,
-            umar_status: req.body.umar_status,
-            uchildren: req.body.uchildren,
-            updatedAt: Date(),
-            createdAt: Date(),
-            uphotoUrl: null,
-            ulinkedin: null,
-            ufacebook: null,
-            uinstagram: null,
-            upostscount: 0,
-            ufollowcount: 0,
-            ufollwerscount: 0,
-            ufavoritescount: 0,
-            ulastlogin: Date()
-        } 
-        firebase.database().ref('users/'+firebase.auth().currentUser.uid).set(userObj).then(function(){
-            //  MARK:- Send Response
-            res.status(200).send({
-                response: 200,
-                message: "Data was returned from the database.",
-                data: {
-                    auth_token: "token"
-                }
-            });
-        }).catch(function(error) {
-            // Handle Errors here.
-            var errorCode = error.code;
-            var errorMessage = error.message;
-            
-            res.status(500).send({
-                response: 500,
-                message: errorMessage,
-                error: error
-            });
-        });
-        
-    }).catch(function(error) {
-        // Handle Errors here.
-        var errorCode = error.code;
-        var errorMessage = error.message;
-
-        res.status(500).send({
-            response: 500,
-            message: errorMessage,
-            error: error
-        });
-    });
+    var userId = randomstring.generate(10);
+    var user = {
+        uid: userId,
+        uname: req.body.uname,
+        uemail: req.body.uemail,
+        umar_status: req.body.umar_status,
+        uchildren: req.body.uchildren,
+        updatedAt: Date(),
+        createdAt: Date(),
+        uphotoUrl: null,
+        ulinkedin: null,
+        ufacebook: null,
+        uinstagram: null,
+        upostscount: 0,
+        ufollowcount: 0,
+        ufollwerscount: 0,
+        ufavoritescount: 0,
+        ulastlogin: Date()
+    }
+    console.log(user);
 });
 
 //  PREREGISTER USER
@@ -516,6 +577,7 @@ httpServer.agent= false;
 httpServer.listen(port, function() {
     console.log('DadHive running on port ' + port + '.');
     firebase.setup();
+    mongodb.setup();
 });
 
 const io = require('socket.io')(httpServer);
@@ -529,4 +591,8 @@ io.on('connection', function(socket){
 
 module.exports.port = port;
 module.exports.firebase = firebase;
+module.exports.mongodb = mongodb;
 module.exports.cache = nodeCache;
+module.exports.nodemailer = function retreiveNodemailer(callback) {
+    callback(transporter);
+}
