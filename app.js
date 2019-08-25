@@ -1,23 +1,21 @@
 'use strict';
 
 const express           = require('express');
-const bcrypt            = require('bcryptjs');
 const bodyParser        = require('body-parser');
 const path              = require('path');
 const firebase          = require('./firebase.js');
 const mongodb           = require('./mongodb.js');
-const aws               = require('./aws.js');
 const configs           = require('./configs');
-const fs                = require('fs');
 const session           = require('client-sessions');
 const nodemailer        = require('nodemailer');
 const randomstring      = require('randomstring');
-const xoauth2           = require('xoauth2');
 const NodeCache         = require('node-cache');
+const middleware        = require('./middleware');
+const _                 = require('underscore');
+const jwt               = require('jsonwebtoken');
 
 var oneDay              = configs.oneDay;
 var port                = process.env.PORT || configs.port;
-var jwtsec              = process.env.JWT_SECRET || configs.secret;
 var nodemailerUsr       = process.env.NODEMAIL_USR || configs.nodemailusr;
 var nodemailerPass      = process.env.NODEMAIL_PSW || configs.nodemailpass;
 var nodemailerClientID  = process.env.NODEMAIL_CLIENT || configs.nodemailerclientid;
@@ -51,9 +49,9 @@ var transporter = nodemailer.createTransport({
     auth: {
         type: 'OAuth2',
         user: nodemailerUsr,
-        clientId: nodemailerClientID,
-        clientSecret: nodemailerClientSecret,
-        refreshToken: nodemailerClientToken
+        clientId: "169871664069-v7qfip8fn8sb1q0leh0kqlgeo8egojfk.apps.googleusercontent.com",
+        clientSecret: "cDOqXWb93FojAXok0ODdSqh2",
+        refreshToken: "1/humTDmtJl9G9aDM55K8QX78VkRsZ2fuH5wRDl7kfASQ"
     }
 });
 
@@ -68,9 +66,115 @@ app.all('/data/*', function(req, res) {
     res.sendStatus(404);
 });
 
+// app.get('/', function(req, res) {
+//     res.status('200').render('index');
+// });
+
 app.get('/', function(req, res) {
-    res.status('200').render('index');
+
+    let session = req.DadHiveiwo3ihn2o3in2goi3bnoi;
+    let sessionCheckValue = !(_.isEmpty(session)) && (session !== null || typeof session !== 'undefined')
+  
+    if (sessionCheckValue) {
+        res.redirect('/home');
+    } else {
+        res.status('200').render('index_v1', {
+            "message" : "Test POST request.",
+            "page" : {
+                "title": "DadHive",
+                "session": {
+                    "isSessionActive": sessionCheckValue,
+                    "data": req.DadHiveiwo3ihn2o3in2goi3bnoi
+                }
+            }
+        });
+    }
 });
+
+app.get('/login', function(req, res) {
+    
+    let session = req.DadHiveiwo3ihn2o3in2goi3bnoi;
+    let sessionCheckValue = !(_.isEmpty(session)) && (session !== null || typeof session !== 'undefined')
+  
+    if (sessionCheckValue) {
+        res.redirect('/home');
+    } else {
+        res.status('200').render('login', {
+            "message" : "Test GET request.",
+            "page" : {
+                "title": "DadHive",
+                "session": {
+                    "isSessionActive": sessionCheckValue,
+                    "data": req.DadHiveiwo3ihn2o3in2goi3bnoi
+                }
+            }
+        });
+    }
+});
+
+app.get('/register', function(req, res) {
+    
+    let session = req.DadHiveiwo3ihn2o3in2goi3bnoi;
+    let sessionCheckValue = !(_.isEmpty(session)) && (session !== null || typeof session !== 'undefined')
+
+    if (sessionCheckValue) {
+        res.redirect('/home');
+    } else {
+        res.status('200').render('register_v1', {
+            "message" : "Test GET request.",
+            "page" : {
+                "title": "DadHive",
+                "session": {
+                    "isSessionActive": sessionCheckValue,
+                    "data": req.DadHiveiwo3ihn2o3in2goi3bnoi
+                }
+            }
+        });
+    }
+});
+
+app.get('/home', function(req, res) {
+    
+    
+    let session = req.DadHiveiwo3ihn2o3in2goi3bnoi;
+    let sessionCheckValue = !(_.isEmpty(session)) && (session !== null || typeof session !== 'undefined')
+  
+    if (sessionCheckValue) {
+        res.status('200').render('home', {
+            "message" : "Test GET request.",
+            "page" : {
+                "title": "DadHive",
+                "session": {
+                    "isSessionActive": sessionCheckValue,
+                    "data": req.DadHiveiwo3ihn2o3in2goi3bnoi
+                }
+            }
+        });
+    } else {
+        res.redirect('/');
+    }
+});
+
+// app.get('/listings', function(req, res) {
+    
+//     let session = req.DadHiveiwo3ihn2o3in2goi3bnoi;
+//     let sessionCheckValue = !(_.isEmpty(session)) && (session !== null || typeof session !== 'undefined')
+  
+//     if (sessionCheckValue) {
+//         res.status('200').render('listings', {
+//             "message" : "Test GET request.",
+//             "page" : {
+//                 "title": "DadHive",
+//                 "session": {
+//                     "isSessionActive": sessionCheckValue,
+//                     "data": req.DadHiveiwo3ihn2o3in2goi3bnoi
+//                 }
+//             }
+//         });
+//     } else {
+//         res.redirect('/');
+//     }
+// });
 
 app.get('/privacy', function(req, res) {
     res.json({
@@ -86,10 +190,6 @@ app.get('/tos', function(req, res) {
 
 app.get('/submitquestion', function(req, res){
     res.status('200').render('submitquestion');
-});
-
-app.get('/register', function(req, res){
-    res.status('200').render('register');
 });
 
 //  API
@@ -493,3 +593,6 @@ module.exports.port = port;
 module.exports.firebase = firebase;
 module.exports.mongodb = mongodb;
 module.exports.cache = nodeCache;
+module.exports.nodemailer = function retreiveNodemailer(callback) {
+    callback(transporter);
+}

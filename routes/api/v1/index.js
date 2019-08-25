@@ -2,15 +2,13 @@ const express                           = require('express');
 const router                            = express.Router();
 const main                              = require('../../../app');
 const bodyParser                        = require('body-parser');
-const path                              = require('path');
 const session                           = require('client-sessions');
-const ok                                = require('async');
-const randomstring                      = require('randomstring');
 const formidable                        = require('formidable');
 const _                                 = require('underscore');
 const mime                              = require('mime');
 const configs                           = require('../../../configs');
-const geohash                           = require('latlon-geohash');
+const middleware                        = require('../../../middleware');
+
 
 //  Add projects below
 const dadhiveFunctions                  = require('../../functions/index');
@@ -29,22 +27,30 @@ router.use(session({
     activeDuration: 5 * 60 * 1000,
 }));
 
-router.get('/test', function(req, res) {
+router.post('/test', middleware.checkToken, function(req, res) {
     res.json({
-        "text" : "Test GET request."
-    })
+        "message" : "Test POST request.",
+        "data" : req.body,
+        "page" : {
+            "title": "DadHive",
+            "session": {
+                "isSessionActive": !(req.session !== null || typeof req.session !== 'undefined'),
+                "data": req.session
+            }
+        }
+    });
 });
 
 // MARK: - Login functionality should be reserved for web platform
 // Web platform not available. 
+
 router.post('/login', function( req, res ) {
-    console.log(req.body);
     dadhiveFunctions.signin(req, res);
 });
 
 router.post('/createUser', function(req, res) {
-    dadhiveFunctions.signup(req, res, function(uid) {
-        if (uid === null) { 
+    dadhiveFunctions.signup(req, res, function(uid, token, refresh) {
+        if (uid === null || token === null || refresh === null) { 
             var error = {
                 "code": 200,
                 "message": "Something went wrong. Please try again later."
@@ -53,8 +59,16 @@ router.post('/createUser', function(req, res) {
             dadhiveFunctions.sendResponse(200, error, null, null, res)
         } else {
             req.body.uid = uid
+            req.body.token = token
+            req.body.refreshToken = refresh
             dadhiveFunctions.createUserMongoDB(req, res);
         }
+    });
+});
+
+router.get('/signout', function(req, res) {
+    dadhiveFunctions.signout(req, res, function(success){
+        res.redirect('/');
     });
 });
 
@@ -71,6 +85,16 @@ router.post('/createMatch', function(req, res) {
 router.post('/getMatches', function(req, res) {
     console.log(req.body);
     dadhiveFunctions.getMatchesMongoDB(req, res);
+});
+
+router.post('/deleteMatch', function(req, res) {
+    console.log(req.body);
+    dadhiveFunctions.deleteMatchMongoDB(req, res);
+});
+
+router.post('/deleteConversation', function(req ,res) {
+    console.log(req.body);
+    dadhiveFunctions.deleteConversationWithParticipantsMongoDB(req, res);
 });
 
 router.post('/addParticipant', function(req, res) {
@@ -109,7 +133,11 @@ router.post('/saveLocation', function(req, res) {
 });
 
 router.post('/editUserProfile', function(req, res) {
-    dadhiveFunctions.editUserMongoDB(req, res);
+    if (req.headers['agent'] === "web") {
+        dadhiveFunctions.editUser(req, res);
+    } else {
+        dadhiveFunctions.editUserMongoDB(req, res);
+    }
 });
 
 router.post('/getNearbyUsers', function(req, res) {
@@ -120,6 +148,10 @@ router.post('/getNearbyUsers', function(req, res) {
 router.post('/retrieveForMap', function(req, res) {
     console.log(req.body);
     dadhiveFunctions.retrieveForMapMongoDB(req, res);
+});
+
+router.post('/reportUser', function(req, res) {
+    dadhiveFunctions.reportUser(req, res);
 });
 
 // MARK: - Reserved for Cloud Functions

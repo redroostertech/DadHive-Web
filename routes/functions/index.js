@@ -4,6 +4,8 @@ const _             = require('underscore');
 const randomstring  = require('randomstring');
 const async         = require("async");
 const geohash       = require('latlon-geohash');
+const jwt           = require('jsonwebtoken');
+const configs       = require('../../configs');
 
 var genericError = { "errorCode": 200, "errorMessage": "Something went wrong." };
 var genericEmptyError = { "errorCode" : null, "errorMessage" : null };
@@ -379,7 +381,7 @@ module.exports = {
 
     createPublicFileURL: function (storageName) {
         return `http://storage.googleapis.com/${main.configs.firebaseStorageBucket}/${encodeURIComponent(storageName)}`;
-    }, 
+    },
 
     sendResponse: function(code, error, success, data, res) {
         handleJSONResponse(code, error, success, data, res);
@@ -399,8 +401,27 @@ module.exports = {
                         handleJSONResponse (200, error, null, null, res)
                     } else {
                         var uid = auth.currentUser.uid; 
+                        let token = jwt.sign(
+                            {
+                                username: uid
+                            },
+                            configs.secret,
+                            { 
+                                expiresIn: configs.secretLimit
+                            }
+                        );
+                        let refreshToken = jwt.sign(
+                            {
+                                username: uid
+                            },
+                            configs.refresh,
+                            { 
+                                expiresIn: configs.refreshLimit
+                            }
+                        );
                         auth.signOut().then(function() {
-                            callback(uid, req.body);
+                            //  callback(uid, req.body);
+                            callback(uid, token, refreshToken, req.body);
                         }).catch(function(error) {
                             console.log(error);
                             handleJSONResponse (200, error, null, null, res);
@@ -420,48 +441,104 @@ module.exports = {
     signin: function(req, res) {
         main.firebase.firebase_auth(function(auth) {
             auth.signInWithEmailAndPassword(req.body.emailaddress, req.body.password).then(function () {
-                auth.onAuthStateChanged(function (user) {
-                    if (user) {
-                        // checkForUser(user.uid, function(success, error, results) {
-                        //     if (results.length >= 1) {
-                        //         var snapshotArray = new Array();
-                        //         results.forEach(function(result) {
-                        //             snapshotArray.push(generateUserModel(result[0]));
-                        //         });
-                        //         var data = { "user": snapshotArray[0] };
-                        //         handleJSONResponse(200, error, success, data, res);
-                        //     }
-                        // });
-                        main.mongodb.usergeo(function(collection) {
-                            collection.findOne(
-                                {
-                                    uid: user.uid
-                                }, function(err, result) {
-                                    if (err) return res.status(200).json({
-                                        "status": 200,
-                                        "success": { "result" : false, "message" : "There was an error" },
-                                        "data": null,
-                                        "error": err
+                let user = auth.currentUser;
+                if (user) {
+                    console.log("Current user exists");
+                    var uid = auth.currentUser.uid; 
+                    main.mongodb.usergeo(function(collection) {
+                        collection.findOne(
+                        {
+                            uid: user.uid
+                        }, function(err, result) {
+                            if (err) return res.status(200).json({
+                                "status": 200,
+                                "success": { "result" : false, "message" : "There was an error" },
+                                "data": null,
+                                "error": err
+                            });
+            
+                            if (!result) return res.status(200).json({
+                                "status": 200,
+                                "success": { "result" : false, "message" : "User does not exist." },
+                                "data": null,
+                                "error": err
+                            });
+
+                            jwt.verify(result.refreshToken, configs.refresh, (err, decoded) => {
+                                if (err) {
+                                    console.log("Refresh token is not active.");
+                                    console.log(err);
+                                    let token = jwt.sign(
+                                        {
+                                            username: uid
+                                        },
+                                        configs.secret,
+                                        { 
+                                            expiresIn: configs.secretLimit
+                                        }
+                                    );
+                                    let refreshToken = jwt.sign(
+                                        {
+                                            username: uid
+                                        },
+                                        configs.refresh,
+                                        { 
+                                            expiresIn: configs.refreshLimit
+                                        }
+                                    );
+                                    main.mongodb.usergeo(function(collection) {
+                                        collection.updateOne(
+                                            {
+                                                uid: uid
+                                            },{
+                                                $set: {    
+                                                    refreshToken: refreshToken
+                                                }
+                                            },{
+                                                multi: true,
+                                            }
+                                        , function(err, object) {
+                                            if (err) return res.status(200).json({
+                                                "status": 200,
+                                                "success": { "result" : false, "message" : "There was an error" },
+                                                "data": null,
+                                                "error": err
+                                            });
+                                            if (!object) return res.status(200).json({
+                                                "status": 200,
+                                                "success": { "result" : false, "message" : "User was not updated." },
+                                                "data": null,
+                                                "error": err
+                                            });
+                                
+                                            result.token = token;
+                                            result.refreshToken = refreshToken;
+
+                                            res.status(200).json({
+                                                "status": 200,
+                                                "success": { "result" : true, "message" : "Request was successful" },
+                                                "data": generateUserModel(result),
+                                                "error": err
+                                            });
+                                        });
                                     });
-                    
-                                    if (!result) return res.status(200).json({
-                                        "status": 200,
-                                        "success": { "result" : false, "message" : "User does not exist." },
-                                        "data": null,
-                                        "error": err
-                                    });
+                                } else {
+                                    console.log("Refresh token is still active.");
+                                    createSession(req, result);
                                     res.status(200).json({
                                         "status": 200,
                                         "success": { "result" : true, "message" : "Request was successful" },
                                         "data": generateUserModel(result),
                                         "error": err
                                     });
-                            }); 
+                                }
+                            });
                         });
-                    } else {
-                        handleJSONResponse(200, genericEmptyError, genericFailure, null, res);
-                    }
-                });
+                    });
+                } else {
+                    console.log("Current user doesn't exist");
+                    handleJSONResponse(200, genericEmptyError, genericFailure, null, res);
+                }
             }).catch(function (error) {
                 console.log(error);
                 handleJSONResponse(200, error, genericFailure, null, res);
@@ -473,7 +550,7 @@ module.exports = {
 
         // MARK: - Create user
         main.mongodb.usergeo(function(collection) {
-            var user_object = createEmptyUserObject(req.body.email, req.body.name, req.body.uid, req.body.type, req.body.kidsCount, req.body.maritalStatus, req.body.linkedin, req.body.facebook, req.body.instagram, req.body.ageRanges, req.body.kidsNames);
+            var user_object = createEmptyUserObject(req.body.email, req.body.name, req.body.uid, req.body.type, req.body.kidsCount, req.body.maritalStatus, req.body.linkedin, req.body.facebook, req.body.instagram, req.body.ageRanges, req.body.kidsNames, req.body.refreshToken);
             collection.insertOne(user_object, function(err, user) {
                 if (err) return res.status(200).json({
                     "status": 200,
@@ -538,6 +615,11 @@ module.exports = {
                             var user_data_formatted = user["ops"][0]
                             var actionFinal = generateActionModel(action["ops"][0]);
                             user_data_formatted.actions_results = [actionFinal];
+
+                            user_data_formatted.token = req.body.token;
+
+                            createSession(req, user_data_formatted);
+
                             var userFinal = generateUserModel(user_data_formatted);
                             res.status(200).json({
                                 "status": 200,
@@ -548,6 +630,26 @@ module.exports = {
                         }); 
                     });
                 });
+            });
+        });
+    },
+
+    signout: function(req, res, callback) {
+        main.firebase.firebase_auth(function(auth) {
+            auth.signOut().then(function() {
+                let user = auth.currentUser;
+                if (user) {
+                    console.log("User did not log out yet.")
+                } else {
+                    console.log("User logged out.");
+                    req.DadHiveiwo3ihn2o3in2goi3bnoi.reset();
+                    req.DadHiveiwo3ihn2o3in2goi3bnoi.setDuration(0);
+                    callback(true);
+                }
+            }).catch(function(error) {
+                console.log("Signout error:");
+                console.log(error);
+                callback(false);
             });
         });
     },
@@ -779,7 +881,7 @@ module.exports = {
 
                 if (!result || !result[0]) return res.status(200).json({
                     "status": 200,
-                    "success": { "result" : false, "message" : "User does not exist." },
+                    "success": { "result" : false, "message" : "No matches exist for user." },
                     "data": null,
                     "error": err
                 });
@@ -800,6 +902,79 @@ module.exports = {
                     "error": err
                 });
             }); 
+        });
+    },
+
+    deleteMatchMongoDB: function(req, res) {
+        async.parallel({
+            deleteMatchFromSender: function(callback) {
+                main.mongodb.actioncol(function(collection) {
+                    collection.updateOne({
+                        owner: req.body.senderId
+                    }, {
+                        $pull: { 
+                            likes: { 
+                                $in: [req.body.recipientId]
+                            },
+                            matches: {
+                                $in: [req.body.recipientId]
+                            }
+                        }
+                    }, function(err) {
+                        if (err) return callback(err, false);
+                        callback(err, true);
+                    });
+                });
+            },
+            deleteMatchFromRecipient: function(callback) {
+                main.mongodb.actioncol(function(collection) {
+                    collection.updateOne({
+                        owner: req.body.recipientId
+                    }, {
+                        $pull: { 
+                            likes: { 
+                                $in: [req.body.senderId]
+                            },
+                            matches: {
+                                $in: [req.body.senderId]
+                            }
+                        }
+                    }, function(err) {
+                        if (err) return callback(err, false);
+                        callback(err, true);
+                    });
+                });
+            },
+            deleteConversationFromParticipants: function(callback) {
+                main.mongodb.convoscol(function(collection) {
+                    // MARK :- Check if a conversation already exists.
+                    collection.findOneAndDelete({
+                        participants: {
+                            $in: [req.body.senderId, req.body.senderId]
+                        }
+                    }, function(err) {
+                        if (err) return callback(err, false);
+                        callback(err, true);
+                    });
+                });
+            },
+        }, function(err, results) {
+            if (err) return handleJSONResponse(200, err, genericFailure, results, res);
+            if (results.deleteMatchFromSender === false || results.deleteMatchFromRecipient === false) {
+                res.status(200).json({
+                    "status": 200,
+                    "success": { "result" : false, "message" : "There was an error" },
+                    "data": null,
+                    "error": err
+                });
+            } else {
+                res.status(200).json({
+                    "status": 200,
+                    "success": { "result" : true, "message" : "User unmatching was successful" },
+                    "data": { },
+                    "error": err
+                });
+            }
         });
     },
 
@@ -1027,6 +1202,30 @@ module.exports = {
                         "error": err
                     });
                 }
+            });
+        });
+    },
+
+    deleteConversationWithParticipantsMongoDB: function(req, res) {
+        main.mongodb.convoscol(function(collection) {
+            // MARK :- Check if a conversation already exists.
+            collection.findOneAndDelete({
+                participants: {
+                    $in: [req.body.participants]
+                }
+            }, function(err) {
+                if (err) return res.status(200).json({
+                    "status": 200,
+                    "success": { "result" : true, "message" : "There was an error" },
+                    "data": null,
+                    "error": err
+                });
+                res.status(200).json({
+                    "status": 200,
+                    "success": { "result" : false, "message" : "Conversation deleted." },
+                    "data": null,
+                    "error": err
+                });
             });
         });
     },
@@ -1610,7 +1809,9 @@ module.exports = {
                         "data": null,
                         "error": err
                     });
-        
+
+                    req.DadHiveiwo3ihn2o3in2goi3bnoi.user.name = req.body.value
+
                     res.status(200).json({
                         "status": 200,
                         "success": { "result" : true, "message" : "User was updated" },
@@ -2526,13 +2727,64 @@ module.exports = {
             });
         }
 
-        return res.status(200).json({
-            "status": 200,
-            "success": { "result" : false, "message" : "Property cannot be updated." },
-            "data": null,
-            "error": genericEmptyError
-        });
+        // return res.status(200).json({
+        //     "status": 200,
+        //     "success": { "result" : false, "message" : "Property cannot be updated." },
+        //     "data": null,
+        //     "error": genericEmptyError
+        // });
 
+    },
+
+    editUser: function(req, res) {
+        var newObject = new Object();
+        var userId;
+
+        Object.keys(req.body).forEach(function(key) {
+            if (key === "userId") {
+                userId = req.body[key];
+            } else {
+                newObject[key] = req.body[key];
+            }
+        });
+        console.log("New Object");
+        console.log(newObject);
+
+        main.mongodb.usergeo(function(collection) {
+            collection.updateOne(
+                {
+                    uid: userId,
+                },{
+                    $set: newObject,
+                },{
+                    multi: true,
+                }
+            , function(err, result) {
+                if (err) return res.status(200).json({
+                    "status": 200,
+                    "success": { "result" : false, "message" : "There was an error" },
+                    "data": null,
+                    "error": err
+                });
+                if (!result) return res.status(200).json({
+                    "status": 200,
+                    "success": { "result" : false, "message" : "User was not updated." },
+                    "data": null,
+                    "error": err
+                });
+
+                Object.keys(newObject).forEach(function(key) {
+                    req.DadHiveiwo3ihn2o3in2goi3bnoi.user[key] = newObject[key];
+                });
+
+                res.status(200).json({
+                    "status": 200,
+                    "success": { "result" : true, "message" : "User was updated" },
+                    "data": req.body,
+                    "error": err
+                });
+            });
+        });
     },
 
     uploadPictureMongoDB: function(req, res) {
@@ -2602,8 +2854,48 @@ module.exports = {
     },
 
     retrieveForMapMongoDB: function(req, res) {
-
+        
     },
+
+    reportUser: function(req, res) {
+        main.nodemailer(function(transporter) {
+            var error;
+            transporter.sendMail({
+                from: "thedadhive@gmail.com",
+                to: "info@redroostertec.com",
+                subject: "Report User: " + req.body.reportUserEmail,
+                html: '<b>Hello</b><br>' + req.body.senderEmail + ' would like to report user with the ID: ' + req.body.reportUserId + ' for inappropriate behavior on ' + Date() + '.'
+            }, function(err, response) {
+                console.log(response);
+                console.log(error);
+                error = err
+            });
+            if (typeof error === 'undefined' || error === null) {
+                res.status(200).json({
+                    "status": 200,
+                    "success": {
+                            "result" : true, 
+                            "message" : "Email was sent." 
+                    },
+                    "data": req.body,
+                    "error": null
+                });
+                transporter.close();
+            } else {
+                res.status(200).json({
+                    "status": 200,
+                    "success": {
+                            "result" : false, 
+                            "message" : "Email was not sent." 
+                    },
+                    "data": req.body,
+                    "error": genericFailure
+                });
+                transporter.close();
+            }
+        });
+    },
+    
     // END MONGODB FUNCTIONS
     
     getUsers: function(req, res) {
@@ -3106,9 +3398,10 @@ module.exports = {
     }
 }
 
-function createEmptyUserObject(email, name, uid, type, kidsCount, maritalStatus, linkedin, facebook, instagram, ageRanges, kidsNames) {
+function createEmptyUserObject(email, name, uid, type, kidsCount, maritalStatus, linkedin, facebook, instagram, ageRanges, kidsNames, refreshToken) {
     var data = {
         id: randomstring.generate(25),
+        refreshToken: refreshToken,
         email: email,
         name: name,
         uid: uid,
@@ -3152,7 +3445,7 @@ function createEmptyUserObject(email, name, uid, type, kidsCount, maritalStatus,
         companyName: null,
         schoolName: null,
         kidsCount: 0,
-        kidsNames: null,
+        kidsNames: kidsNames,
         kidsAges: null,
         kidsBio: null,
         kidsCount: kidsCount,
@@ -3385,6 +3678,8 @@ function checkForMessages (conversationId, callback) {
 function generateUserModel(doc) {
     var data = { 
         key: doc.key,
+        accessToken: doc.token,
+        refreshToken: doc.refreshToken,
         uid: doc.uid,
         docId: doc.docId,
         name: {
@@ -3592,4 +3887,11 @@ function generateEmptyMessageModel() {
 //  MARK:- Useful functions
 function getMeters(fromMiles) {
     return fromMiles * 1609.344;
+}
+
+function createSession(req, data) {
+    req.DadHiveiwo3ihn2o3in2goi3bnoi.user = data;
+    req.DadHiveiwo3ihn2o3in2goi3bnoi.uid = data.uid;
+    req.DadHiveiwo3ihn2o3in2goi3bnoi.token = data.token;
+    req.DadHiveiwo3ihn2o3in2goi3bnoi.refresh = data.refreshToken;
 }
