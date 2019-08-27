@@ -133,6 +133,8 @@ router.post('/saveLocation', function(req, res) {
 });
 
 router.post('/editUserProfile', function(req, res) {
+    console.log(req.headers);
+    console.log(req.body);
     if (req.headers['agent'] === "web") {
         dadhiveFunctions.editUser(req, res);
     } else {

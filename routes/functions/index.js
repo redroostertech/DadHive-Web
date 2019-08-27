@@ -1440,8 +1440,8 @@ module.exports = {
         var perPage = parseInt(req.body.perPage)
         var query = {}
         var find = {
-            userId: {
-                $nin: [req.body.userId]
+            uid: {
+                $nin: req.body.excludedIds
             }, 
             location: { 
                 $near: {
@@ -1457,10 +1457,6 @@ module.exports = {
         }
         query.skip = size * (pageNo - 1)
         query.limit = size
-
-        if (typeof(req.body.lastId) !== "undefined" && req.body.lastId !== '') {
-            find.userId.$nin.push(req.body.lastId);
-        }
 
         console.log(find);
         
@@ -1810,7 +1806,7 @@ module.exports = {
                         "error": err
                     });
 
-                    req.DadHiveiwo3ihn2o3in2goi3bnoi.user.name = req.body.value
+                    // req.DadHiveiwo3ihn2o3in2goi3bnoi.user.name = req.body.value
 
                     res.status(200).json({
                         "status": 200,
@@ -3707,9 +3703,9 @@ function generateUserModel(doc) {
             },
             maxDistance: doc.maxDistance,
             ageRange: {
-                ageRangeId: doc.ageRangeId,
-                ageRangeMin: doc.ageRangeMin,
-                ageRangeMax: doc.ageRangeMax
+                id: doc.ageRangeId,
+                min: doc.ageRangeMin,
+                max: doc.ageRangeMax
             },
             initialSetup: doc.initialSetup,
         },
