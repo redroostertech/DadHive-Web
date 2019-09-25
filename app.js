@@ -14,28 +14,33 @@ const middleware        = require('./middleware');
 const _                 = require('underscore');
 const jwt               = require('jsonwebtoken');
 
-var oneDay              = configs.oneDay;
-var port                = process.env.PORT || configs.port;
-var nodemailerUsr       = process.env.NODEMAIL_USR || configs.nodemailusr;
-var nodemailerPass      = process.env.NODEMAIL_PSW || configs.nodemailpass;
-var nodemailerClientID  = process.env.NODEMAIL_CLIENT || configs.nodemailerclientid;
-var nodemailerClientSecret = process.env.NODEMAIL_CLIENTSEC || configs.nodemailerclientsecret;
-var nodemailerClientToken = process.env.NODEMAIL_REFTOKEN || configs.nodemailerclienttoken;
-var siteTitle           = process.env.SITE_TITLE || configs.siteTitle;
+var oneDay = process.env.oneDay || configs.oneDay;
+var port = process.env.port || configs.port;
+var nodemailerUsr = process.env.nodemailusr || configs.nodemailusr;
+var basePublicPath = process.env.basePublicPath || configs.basePublicPath;
+var baseRoutes = process.env.baseRoutes || configs.baseRoutes;
+var sessionCookieName = process.env.sessionCookieName || configs.sessionCookieName;
+var sessionCookieSecret = process.env.sessionCookieSecret || configs.sessionCookieSecret;
+var sessionDuration = process.env.sessionDuration || configs.sessionDuration;
+var activeDuration = process.env.activeDuration || configs.activeDuration;
+var transporterClientId = process.env.transporterClientId || configs.transporterClientId;
+var transporterClientSecret = process.env.transporterClientSecret || configs.transporterClientSecret;
+var transporterRefreshToken = process.env.transporterRefreshToken || configs.transporterRefreshToken;
+var timeout = process.env.timeout || configs.timeout;
 
 var app = express();
 app.set('views', __dirname + '/views');
 app.set('view engine', 'ejs');
-app.use(express.static(configs.basePublic, {
+app.use(express.static(basePublicPath, {
     maxage: oneDay * 21
 }));
 app.use(bodyParser.urlencoded({extended:true}));
 app.use(bodyParser.json());
 app.use(session({
-    cookieName: process.env.COOKIENAME || configs.cookiename,
-    secret: process.env.COOKIESEC || configs.cookiesecret,
-    duration: 60 * 60 * 1000,
-    activeDuration: 5 * 60 * 1000,
+    cookieName: sessionCookieName,
+    secret: sessionCookieSecret,
+    duration: sessionDuration,
+    activeDuration: activeDuration,
 }));
 
 var nodeCache = new NodeCache({ 
@@ -49,13 +54,13 @@ var transporter = nodemailer.createTransport({
     auth: {
         type: 'OAuth2',
         user: nodemailerUsr,
-        clientId: "169871664069-v7qfip8fn8sb1q0leh0kqlgeo8egojfk.apps.googleusercontent.com",
-        clientSecret: "cDOqXWb93FojAXok0ODdSqh2",
-        refreshToken: "1/humTDmtJl9G9aDM55K8QX78VkRsZ2fuH5wRDl7kfASQ"
+        clientId: transporterClientId,
+        clientSecret: transporterClientSecret,
+        refreshToken: transporterRefreshToken
     }
 });
 
-var apiController = require(path.join(configs.baseRoutes, '/api/v1/index.js'));
+var apiController = require(path.join(baseRoutes, '/api/v1/index.js'));
 app.use('/api/v1', apiController);
 
 app.all('/assets/*', function(req, res) {
@@ -65,10 +70,6 @@ app.all('/assets/*', function(req, res) {
 app.all('/data/*', function(req, res) {
     res.sendStatus(404);
 });
-
-// app.get('/', function(req, res) {
-//     res.status('200').render('index');
-// });
 
 app.get('/', function(req, res) {
 
@@ -135,7 +136,6 @@ app.get('/register', function(req, res) {
 
 app.get('/home', function(req, res) {
     
-    
     let session = req.DadHiveiwo3ihn2o3in2goi3bnoi;
     let sessionCheckValue = !(_.isEmpty(session)) && (session !== null || typeof session !== 'undefined')
   
@@ -176,27 +176,6 @@ app.get('/privacy', function(req, res) {
     }
 });
 
-// app.get('/listings', function(req, res) {
-    
-//     let session = req.DadHiveiwo3ihn2o3in2goi3bnoi;
-//     let sessionCheckValue = !(_.isEmpty(session)) && (session !== null || typeof session !== 'undefined')
-  
-//     if (sessionCheckValue) {
-//         res.status('200').render('listings', {
-//             "message" : "Test GET request.",
-//             "page" : {
-//                 "title": "DadHive",
-//                 "session": {
-//                     "isSessionActive": sessionCheckValue,
-//                     "data": req.DadHiveiwo3ihn2o3in2goi3bnoi
-//                 }
-//             }
-//         });
-//     } else {
-//         res.redirect('/');
-//     }
-// });
-
 app.get('/terms', function(req, res) {
     let session = req.DadHiveiwo3ihn2o3in2goi3bnoi;
     let sessionCheckValue = !(_.isEmpty(session)) && (session !== null || typeof session !== 'undefined')
@@ -215,10 +194,6 @@ app.get('/terms', function(req, res) {
             }
         });
     }
-});
-
-app.get('/submitquestion', function(req, res){
-    res.status('200').render('submitquestion');
 });
 
 //  API
@@ -600,23 +575,33 @@ app.post('/search', function(req, res){
 
 //  MARK:- Start Server
 var httpServer = require('http').createServer(app);
-httpServer.setTimeout(configs.timeout);
-httpServer.timeout = configs.timeout;
+httpServer.setTimeout(timeout);
+httpServer.timeout = timeout;
 httpServer.agent= false;
 httpServer.listen(port, function() {
-    console.log('DadHive running on port ' + port + '.');
     firebase.setup();
     mongodb.setup();
+    printAllVariables();
 });
 
-const io = require('socket.io')(httpServer);
+function printAllVariables() {
+    console.log(oneDay);
+    console.log(port);
+    console.log(nodemailerUsr);
+    console.log(basePublicPath);
+    console.log(baseRoutes);
+    console.log(sessionCookieName);
+    console.log(sessionCookieSecret);
+    console.log(sessionDuration);
+    console.log(activeDuration);
+    console.log(transporterClientId);
+    console.log(transporterClientSecret);
+    console.log(transporterRefreshToken);
+    console.log(timeout);
 
-io.on('connection', function(socket){
-    console.log('a user is connected');
-    socket.on('disconnect', function(){
-        console.log('user disconnected');
-    });
-});
+    console.log("--------------");
+    console.log(process.env);
+}
 
 module.exports.port = port;
 module.exports.firebase = firebase;

@@ -9,22 +9,25 @@ const mime                              = require('mime');
 const configs                           = require('../../../configs');
 const middleware                        = require('../../../middleware');
 
-
 //  Add projects below
 const dadhiveFunctions                  = require('../../functions/index');
 
-const oneDay                            = configs.oneDay;
+var oneDay = process.env.oneDay || configs.oneDay;
+var sessionCookieName = process.env.sessionCookieName || configs.sessionCookieName;
+var sessionCookieSecret = process.env.sessionCookieSecret || configs.sessionCookieSecret;
+var sessionDuration = process.env.sessionDuration || configs.sessionDuration;
+var activeDuration = process.env.activeDuration || configs.activeDuration;
 
-router.use(express.static(configs.basePublic, {
+router.use(express.static(configs.basePublicPath, {
     maxage: oneDay * 21
 }));
 router.use(bodyParser.urlencoded({extended:true}));
 router.use(bodyParser.json());
 router.use(session({
-    cookieName: process.env.COOKIENAME || configs.cookiename,
-    secret: process.env.COOKIESEC || configs.cookiesecret,
-    duration: 60 * 60 * 1000,
-    activeDuration: 5 * 60 * 1000,
+    cookieName: sessionCookieName,
+    secret: sessionCookieSecret,
+    duration: sessionDuration,
+    activeDuration: activeDuration,
 }));
 
 router.post('/test', middleware.checkToken, function(req, res) {

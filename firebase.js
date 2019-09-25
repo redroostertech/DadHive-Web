@@ -3,8 +3,7 @@
 var firebase            = require('firebase');
 var admin               = require('firebase-admin');
 var configs             = require('./configs');
-var serviceAccount      = require(configs.firstoragefilename);  //  MARK:- Uncomment and provide url to service account .json file.
-const {Storage}         = require('@google-cloud/storage');
+const { Storage }         = require('@google-cloud/storage');
 const { GeoCollectionReference, GeoFirestore, GeoQuery, GeoQuerySnapshot } = require('geofirestore');
 
 require("firebase/auth");
@@ -14,6 +13,14 @@ require("firebase/functions");
 require("firebase/storage");
 require("firebase/firestore");
 
+var firapikey = process.env.firapikey || configs.firapikey;
+var firauthdomain = process.env.firauthdomain || configs.firauthdomain;
+var firdburl = process.env.firdburl || configs.firdburl;
+var firprojectid = process.env.firprojectid || configs.firprojectid;
+var firstoragebucket = process.env.firstoragebucket || configs.firstoragebucket;
+var firmessagingsenderid = process.env.firmessagingsenderid || configs.firmessagingsenderid;
+var firstoragefilename = process.env.firstoragefilename || configs.firstoragefilename;
+
 //  MARK:- Setup Firebase App
 var firebaseObj;
 var firebaseAdmin;
@@ -22,14 +29,16 @@ var firebaseFirestoreDB;
 var firebaseRealtimeDB;
 var firebaseGeo; 
 
+var serviceAccount = require(firstoragefilename);  //  MARK:- Uncomment and provide url to service account .json file.
 var settings = { timestampsInSnapshots: true };
+
 var firebase_configuration = {
-    apiKey: process.env.FIRAPIKEY || configs.firapikey,
-    authDomain: process.env.FIRDOM || configs.firauthdomain,
-    databaseURL: process.env.FIRDBURL || configs.firdburl,
-    projectId: process.env.FIRPROJ || configs.firprojectid,
-    storageBucket: process.env.FIRSTOR || configs.firstoragebucket,
-    messagingSenderId: process.env.FIRMES || configs.firmessagingsenderid,
+    apiKey: firapikey,
+    authDomain: firauthdomain,
+    databaseURL: firdburl,
+    projectId: firprojectid,
+    storageBucket: firstoragebucket,
+    messagingSenderId: firmessagingsenderid,
 };
 
 function setupFirebaseApp(callback) {
@@ -44,8 +53,8 @@ function setupFirebaseApp(callback) {
 function setupAdminFirebaseApp(callback) {
     firebaseAdmin = admin.initializeApp({
         credential: admin.credential.cert(serviceAccount),
-        databaseURL: configs.firebaseDatabaseUrl,
-        storageBucket: configs.firebaseStorageBucket
+        databaseURL: firdburl,
+        storageBucket: firstoragebucket
     });
     callback();
 }
@@ -63,8 +72,8 @@ function setupFirestoreDB(callback) {
 
 function setupFirebaseStorage(callback) {
     firbaseStorage = new Storage({
-        projectId: configs.firebaseProjectId,
-        keyFilename: configs.firstoragefilename
+        projectId: firprojectid,
+        keyFilename: firstoragefilename
     });
     callback();
 }
@@ -72,17 +81,6 @@ function setupFirebaseStorage(callback) {
 function setupGeoFireClass(callback) {
     const firestore = firebase.firestore();
     firebaseGeo = new GeoFirestore(firestore);
-
-    // Proof of concept
-    // const geocollection = firebaseGeo.collection('users');
-    // var query = geocollection.near({ center: new firebase.firestore.GeoPoint(33.89954421085915, -84.45787855035809), radius: 1000 });
-    // query.where('createdAt', '>', 'oNztYoxoNsj44NQYeh5D');
-    // query.limit(10);
-    // Get query (as Promise)
-    // query.get().then(function(value) {
-    //     console.log(value.docs.length);
-    // });
-
     callback();
 }
 
@@ -139,4 +137,3 @@ module.exports.generate_geopoint = function generate_Geopoint(lat, long, callbac
         callback(point);
     })
 }
-// module.exports.firebase_storage_bucket = firPrimaryStorageBucket;

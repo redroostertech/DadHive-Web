@@ -1,6 +1,12 @@
 const jwt               = require('jsonwebtoken');
-const config            = require('./configs');
+const configs           = require('./configs');
 const _                 = require('underscore');
+
+var oneDay = process.env.oneDay || configs.oneDay;
+var jwtsecret = process.env.jwtsecret || configs.jwtsecret;
+var jwtsecretLimit = process.env.jwtsecretLimit || configs.jwtsecretLimit;
+var jwtrefresh = process.env.jwtrefresh || configs.jwtrefresh;
+var jwtrefreshLimit = process.env.jwtrefreshLimit || configs.jwtrefreshLimit;
 
 let isSessionActive = (req, res, next) => {
   let session = req.DadHiveiwo3ihn2o3in2goi3bnoi;
@@ -33,7 +39,7 @@ let checkToken = (req, res, next) => {
   }
 
   if (token) {
-    jwt.verify(token, config.secret, (err, decoded) => {
+    jwt.verify(token, jwtsecret, (err, decoded) => {
       if (err) {
         return res.status(200).json({
           "status": 200,
@@ -60,7 +66,7 @@ let checkToken = (req, res, next) => {
 
 let homeCheck = (req, res, next) => {
   let token = req.DadHiveiwo3ihn2o3in2goi3bnoi.refresh;
-  jwt.verify(token, config.refresh, (err, decoded) => {
+  jwt.verify(token, jwtrefresh, (err, decoded) => {
     if (err) {
       console.log("SessionCheck doesn't exist.");
       next();
@@ -73,7 +79,7 @@ let homeCheck = (req, res, next) => {
 
 let sessionCheck = (req, res, next) => {
   let token = req.DadHiveiwo3ihn2o3in2goi3bnoi.refresh;
-  jwt.verify(token, config.refresh, (err, decoded) => {
+  jwt.verify(token, jwtrefresh, (err, decoded) => {
     if (err) {
       console.log("SessionCheck doesn't exist.");
       next();
@@ -86,7 +92,7 @@ let sessionCheck = (req, res, next) => {
 
 let checkSession = (req, res, next) => {
   let token = req.DadHiveiwo3ihn2o3in2goi3bnoi.refresh;
-  jwt.verify(token, config.refresh, (err, decoded) => {
+  jwt.verify(token, jwtrefresh, (err, decoded) => {
     if (err) {
       console.log("CheckSession doesn't exist.");
       return res.redirect('/login');
@@ -99,7 +105,7 @@ let checkSession = (req, res, next) => {
 
 let signoutCheck = (req, res, next) => {
   let token = req.DadHiveiwo3ihn2o3in2goi3bnoi.refresh;
-  jwt.verify(token, config.refresh, (err, decoded) => {
+  jwt.verify(token, jwtrefresh, (err, decoded) => {
     if (err) {
       console.log("Session doesn't exist.");
       console.log(err);
