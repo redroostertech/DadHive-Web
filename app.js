@@ -32,15 +32,15 @@ var app = express();
 app.set('views', __dirname + '/views');
 app.set('view engine', 'ejs');
 app.use(express.static(basePublicPath, {
-    maxage: oneDay * 21
+    maxage: Number(oneDay) * 21
 }));
 app.use(bodyParser.urlencoded({extended:true}));
 app.use(bodyParser.json());
 app.use(session({
     cookieName: sessionCookieName,
     secret: sessionCookieSecret,
-    duration: sessionDuration,
-    activeDuration: activeDuration,
+    duration: Number(sessionDuration),
+    activeDuration: Number(activeDuration),
 }));
 
 var nodeCache = new NodeCache({ 
@@ -575,8 +575,8 @@ app.post('/search', function(req, res){
 
 //  MARK:- Start Server
 var httpServer = require('http').createServer(app);
-httpServer.setTimeout(timeout);
-httpServer.timeout = timeout;
+httpServer.setTimeout(Number(timeout));
+httpServer.timeout = Number(timeout);
 httpServer.agent= false;
 httpServer.listen(port, function() {
     firebase.setup();
