@@ -581,7 +581,28 @@ httpServer.agent= false;
 httpServer.listen(port, function() {
     firebase.setup();
     mongodb.setup();
+    printAllVariables();
 });
+
+function printAllVariables() {
+    console.log(oneDay);
+    console.log(port);
+    console.log(nodemailerUsr);
+    console.log(basePublicPath);
+    console.log(baseRoutes);
+    console.log(sessionCookieName);
+    console.log(sessionCookieSecret);
+    console.log(sessionDuration);
+    console.log(activeDuration);
+    console.log(transporterClientId);
+    console.log(transporterClientSecret);
+    console.log(transporterRefreshToken);
+    console.log(timeout);
+
+    console.log("--------------");
+    console.log(process.env);
+}
+
 
 module.exports.port = port;
 module.exports.firebase = firebase;
