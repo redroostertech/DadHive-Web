@@ -71,6 +71,10 @@ app.all('/data/*', function(req, res) {
     res.sendStatus(404);
 });
 
+// app.get('/', function(req, res) {
+//     res.status('200').render('index');
+// });
+
 app.get('/', function(req, res) {
 
     let session = req.DadHiveiwo3ihn2o3in2goi3bnoi;
@@ -194,6 +198,10 @@ app.get('/terms', function(req, res) {
             }
         });
     }
+});
+
+app.get('/submitquestion', function(req, res){
+    res.status('200').render('submitquestion');
 });
 
 //  API

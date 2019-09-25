@@ -25,7 +25,7 @@ module.exports = {
     jwtsecretLimit: 86400000,
     jwtrefresh: 'u393q48go8w74gubwi3uvo837wg4uyqv4k2uh3e9bh09riejoirnsi48',
     jwtrefreshLimit: 1814400000,
-    
+
     nodemailusr: "thedadhive@gmail.com",
     nodemailpass: "Kountdown123",
     nodemailerclientid: "582457802779-jse8ejpv5llk4s4qd8lol4uo3rbdj3o6.apps.googleusercontent.com",
@@ -34,7 +34,7 @@ module.exports = {
     
     sessionCookieName: "DadHiveiwo3ihn2o3in2goi3bnoi",
     sessionCookieSecret: "wh2o38h3489h3oi3j21jp2h10p9fh320p9",
-    
+
     firapikey: "AIzaSyAo5h-SLSOhVp7z7Oj1hxjFzDNPmG9d808",
     firauthdomain: "dadhive-cc6f5.firebaseapp.com",
     firdburl: "https://dadhive-cc6f5.firebaseio.com",

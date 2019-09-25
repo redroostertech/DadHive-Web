@@ -32,7 +32,6 @@ router.use(session({
     activeDuration: Number(activeDuration),
 }));
 
-
 router.post('/test', middleware.checkToken, function(req, res) {
     res.json({
         "message" : "Test POST request.",
