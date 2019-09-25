@@ -14,28 +14,33 @@ const middleware        = require('./middleware');
 const _                 = require('underscore');
 const jwt               = require('jsonwebtoken');
 
-var oneDay              = configs.oneDay;
-var port                = process.env.PORT || configs.port;
-var nodemailerUsr       = process.env.NODEMAIL_USR || configs.nodemailusr;
-var nodemailerPass      = process.env.NODEMAIL_PSW || configs.nodemailpass;
-var nodemailerClientID  = process.env.NODEMAIL_CLIENT || configs.nodemailerclientid;
-var nodemailerClientSecret = process.env.NODEMAIL_CLIENTSEC || configs.nodemailerclientsecret;
-var nodemailerClientToken = process.env.NODEMAIL_REFTOKEN || configs.nodemailerclienttoken;
-var siteTitle           = process.env.SITE_TITLE || configs.siteTitle;
+var oneDay = process.env.oneDay
+var port = process.env.PORT
+var nodemailerUsr = process.env.nodemailusr
+var basePublicPath = path.join(__dirname, '/public/')
+var baseRoutes = path.join(__dirname, '/routes/')
+var sessionCookieName = process.env.sessionCookieName
+var sessionCookieSecret = process.env.sessionCookieSecret
+var sessionDuration = process.env.sessionDuration
+var activeDuration = process.env.activeDuration
+var transporterClientId = process.env.transporterClientId
+var transporterClientSecret = process.env.transporterClientSecret
+var transporterRefreshToken = process.env.transporterRefreshToken
+var timeout = process.env.timeout
 
 var app = express();
 app.set('views', __dirname + '/views');
 app.set('view engine', 'ejs');
-app.use(express.static(configs.basePublic, {
-    maxage: oneDay * 21
+app.use(express.static(basePublicPath, {
+    maxage: Number(oneDay) * 21
 }));
 app.use(bodyParser.urlencoded({extended:true}));
 app.use(bodyParser.json());
 app.use(session({
-    cookieName: process.env.COOKIENAME || configs.cookiename,
-    secret: process.env.COOKIESEC || configs.cookiesecret,
-    duration: 60 * 60 * 1000,
-    activeDuration: 5 * 60 * 1000,
+    cookieName: sessionCookieName,
+    secret: sessionCookieSecret,
+    duration: Number(sessionDuration),
+    activeDuration: Number(activeDuration),
 }));
 
 var nodeCache = new NodeCache({ 
@@ -49,13 +54,13 @@ var transporter = nodemailer.createTransport({
     auth: {
         type: 'OAuth2',
         user: nodemailerUsr,
-        clientId: "169871664069-v7qfip8fn8sb1q0leh0kqlgeo8egojfk.apps.googleusercontent.com",
-        clientSecret: "cDOqXWb93FojAXok0ODdSqh2",
-        refreshToken: "1/humTDmtJl9G9aDM55K8QX78VkRsZ2fuH5wRDl7kfASQ"
+        clientId: transporterClientId,
+        clientSecret: transporterClientSecret,
+        refreshToken: transporterRefreshToken
     }
 });
 
-var apiController = require(path.join(configs.baseRoutes, '/api/v1/index.js'));
+var apiController = require(path.join(baseRoutes, '/api/v1/index.js'));
 app.use('/api/v1', apiController);
 
 app.all('/assets/*', function(req, res) {
@@ -135,7 +140,6 @@ app.get('/register', function(req, res) {
 
 app.get('/home', function(req, res) {
     
-    
     let session = req.DadHiveiwo3ihn2o3in2goi3bnoi;
     let sessionCheckValue = !(_.isEmpty(session)) && (session !== null || typeof session !== 'undefined')
   
@@ -175,27 +179,6 @@ app.get('/privacy', function(req, res) {
         });
     }
 });
-
-// app.get('/listings', function(req, res) {
-    
-//     let session = req.DadHiveiwo3ihn2o3in2goi3bnoi;
-//     let sessionCheckValue = !(_.isEmpty(session)) && (session !== null || typeof session !== 'undefined')
-  
-//     if (sessionCheckValue) {
-//         res.status('200').render('listings', {
-//             "message" : "Test GET request.",
-//             "page" : {
-//                 "title": "DadHive",
-//                 "session": {
-//                     "isSessionActive": sessionCheckValue,
-//                     "data": req.DadHiveiwo3ihn2o3in2goi3bnoi
-//                 }
-//             }
-//         });
-//     } else {
-//         res.redirect('/');
-//     }
-// });
 
 app.get('/terms', function(req, res) {
     let session = req.DadHiveiwo3ihn2o3in2goi3bnoi;
@@ -600,22 +583,12 @@ app.post('/search', function(req, res){
 
 //  MARK:- Start Server
 var httpServer = require('http').createServer(app);
-httpServer.setTimeout(configs.timeout);
-httpServer.timeout = configs.timeout;
+httpServer.setTimeout(Number(timeout));
+httpServer.timeout = Number(timeout);
 httpServer.agent= false;
 httpServer.listen(port, function() {
-    console.log('DadHive running on port ' + port + '.');
     firebase.setup();
     mongodb.setup();
-});
-
-const io = require('socket.io')(httpServer);
-
-io.on('connection', function(socket){
-    console.log('a user is connected');
-    socket.on('disconnect', function(){
-        console.log('user disconnected');
-    });
 });
 
 module.exports.port = port;

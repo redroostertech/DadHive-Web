@@ -5,11 +5,14 @@ const configs             = require('./configs.js');
 
 var s3; 
 
+var s3AccessKey = process.env.s3AccessKey
+var s3SecretKey = process.env.s3SecretKey
+
 function setup() {
     console.log('Setting up AWS & S3');
     AWS.config.update({
-        accessKeyId: configs.s3AccessKey,
-        secretAccessKey: configs.s3SecretKey
+        accessKeyId: s3AccessKey,
+        secretAccessKey: s3SecretKey
     });
     s3 = new AWS.S3();
 }
