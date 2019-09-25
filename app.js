@@ -15,7 +15,7 @@ const _                 = require('underscore');
 const jwt               = require('jsonwebtoken');
 
 var oneDay = process.env.oneDay || configs.oneDay;
-var port = process.env.port || configs.port;
+var port = process.env.PORT || configs.port;
 var nodemailerUsr = process.env.nodemailusr || configs.nodemailusr;
 var basePublicPath = process.env.basePublicPath || configs.basePublicPath;
 var baseRoutes = process.env.baseRoutes || configs.baseRoutes;
