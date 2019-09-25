@@ -20,15 +20,15 @@ var sessionDuration = process.env.sessionDuration
 var activeDuration = process.env.activeDuration
 
 router.use(express.static(basePublicPath, {
-    maxage: oneDay * 21
+    maxage: Number(oneDay) * 21
 }));
 router.use(bodyParser.urlencoded({extended:true}));
 router.use(bodyParser.json());
 router.use(session({
     cookieName: sessionCookieName,
     secret: sessionCookieSecret,
-    duration: sessionDuration,
-    activeDuration: activeDuration,
+    duration: Number(sessionDuration),
+    activeDuration: Number(activeDuration),
 }));
 
 router.post('/test', middleware.checkToken, function(req, res) {
