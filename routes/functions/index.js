@@ -1441,7 +1441,8 @@ module.exports = {
         var query = {}
         var find = {
             uid: {
-                $nin: req.body.excludedIds
+                $ne: req.body.senderId,
+                $nin: req.body.excludedIds || new Array()
             }, 
             location: { 
                 $near: {
@@ -2853,6 +2854,105 @@ module.exports = {
         
     },
 
+    addCategoryMongoDB: function(req, res) {
+        main.mongodb.categoriescol(function(collection) {
+            // MARK :- Check if a conversation already exists.
+            collection.findOne({
+                label: {
+                    $eq: req.body.label
+                }
+            }, function(err, docs) {
+                if (err) return res.status(200).json({
+                    "status": 200,
+                    "success": { "result" : true, "message" : "There was an error" },
+                    "data": null,
+                    "error": err
+                });
+                if (!docs) {
+                    // MARK :- Create empty conversation object
+                    var object = createCategoryObject(req.body.label);
+                    collection.insertOne(object, function(err, category) {
+                        if (err) return res.status(200).json({
+                            "status": 200,
+                            "success": { "result" : false, "message" : "There was an error" },
+                            "data": null,
+                            "error": err
+                        });
+        
+                        if (!category) return res.status(200).json({
+                            "status": 200,
+                            "success": { "result" : false, "message" : "Category does not exist." },
+                            "data": null,
+                            "error": err
+                        });
+
+                        res.status(200).json({
+                            "status": 200,
+                            "success": { 
+                                "result" : true, 
+                                "message" : "Category was created" 
+                            },
+                            "data": {
+                                "category": category
+                            },
+                            "error": err
+                        });
+
+                    });
+                } else {
+                    console.log(docs);
+                    res.status(200).json({
+                        "status": 200,
+                        "success": { "result" : false, "message" : "Category already exists." },
+                        "data": null,
+                        "error": err
+                    });
+                }
+            });
+        });
+    },
+
+    retrieveAllCategoriesMongoDB: function(req, res) {
+        main.mongodb.categoriescol(function(collection) {
+            collection.find().toArray(function(err, docs) {
+                if (err) return res.status(200).json({
+                    "status": 200,
+                    "success": { 
+                        "result" : true, 
+                        "message" : "There was an error"
+                    },
+                    "data": null,
+                    "error": err
+                });
+                if (!docs) {
+                    res.status(200).json({
+                        "status": 200,
+                        "success": { 
+                            "result" : true, 
+                            "message" : "There was an error" 
+                        },
+                        "data": null,
+                        "error": err
+                    });
+                } else {
+                    console.log(docs);
+                    res.status(200).json({
+                        "status": 200,
+                        "success": { 
+                            "result" : true, 
+                            "message" : "Request was successful" 
+                        },
+                        "data": {
+                            "count": docs.length,
+                            "categories": generateCategoryModels(docs)
+                        },
+                        "error": err
+                    });
+                }
+            });
+        });
+    }, 
+
     reportUser: function(req, res) {
         main.nodemailer(function(transporter) {
             var error;
@@ -2888,6 +2988,1030 @@ module.exports = {
                     "error": genericFailure
                 });
                 transporter.close();
+            }
+        });
+    },
+
+    addPostMongoDB: function(req, res) {
+        main.mongodb.postscol(function(collection) {
+            console.log(req.body.categories);
+            var object = createPostObject(req.body.senderId, req.body.type, req.body.categories, req.body.description, req.body.media);
+            console.log(object);
+            collection.insertOne(object, function(err, post) {
+                if (err) return res.status(200).json({
+                    "status": 200,
+                    "success": { "result" : false, "message" : "There was an error" },
+                    "data": null,
+                    "error": err
+                });
+
+                if (!post) return res.status(200).json({
+                    "status": 200,
+                    "success": { "result" : false, "message" : "Something went wrong."},
+                    "data": null,
+                    "error": err
+                });
+
+                res.status(200).json({
+                    "status": 200,
+                    "success": { 
+                        "result" : true, 
+                        "message" : "Post was created" 
+                    },
+                    "data": {
+                        "category": object
+                    },
+                    "error": err
+                });
+
+            });
+        });
+    },
+
+    retrieveAllPostsMongoDB: function(req, res) {
+        main.mongodb.postscol(function(collection) {
+            collection.aggregate(
+                {
+                    $match: {
+                        type : req.body.type,
+                        owner: {
+                            $nin: req.body.excludedIds || new Array()
+                        },
+                        id: {
+                            $nin: req.body.excludedIds || new Array()
+                        }
+                    }
+                }, { 
+                    $sort : { 
+                        createdAt : -1
+                    } 
+                }, {
+                    $unwind: "$categories"
+                }, {
+                    $lookup: {
+                        from: "categories",
+                        localField: "categories",
+                        foreignField: "id",
+                        as: "_categories"
+                    }
+                }, {
+                    $lookup: {
+                        from: "user-geo",
+                        localField: "owner",
+                        foreignField: "uid",
+                        as: "_owner"
+                    }
+                }, { 
+                    $group: {
+                      _id: null,
+                    }
+                  }
+            ).toArray(function(err, results) {
+                async.each(results, function(result, callback) {
+                    main.mongodb.engagementscol(function(eng_col) {
+                        async.parallel({
+                            myLike: function(callback) {
+                                if (typeof req.body.senderId === 'undefined') return callback(err, 0);
+                                eng_col.find({ 
+                                    owner: req.body.senderId,
+                                    post: result.id,
+                                    type: "1"
+                                }).count().then(function(number) {
+                                    callback(err, number);
+                                });
+                            },
+                            likes: function(callback) {
+                                eng_col.find({ 
+                                    post: result.id,
+                                    type: "1"
+                                }).count().then(function(number) {
+                                    callback(err, number);
+                                });
+                            },
+                            comments: function(callback) {
+                                eng_col.find({ 
+                                    post: result.id,
+                                    type: "2"
+                                }).count().then(function(number) {
+                                    console.log("Likes Count");
+                                    console.log(number);
+                                    callback(err, number);
+                                });
+                            },
+                            upvotes: function(callback) {
+                                eng_col.find({ 
+                                    post: result.id,
+                                    type: "3"
+                                }).count().then(function(number) {
+                                    console.log("Upvotes Count");
+                                    console.log(number);
+                                    callback(err, number);
+                                });
+                            },
+                            downvotes: function(callback) {
+                                eng_col.find({ 
+                                    post: result.id,
+                                    type: "4"
+                                }).count().then(function(number) {
+                                    console.log("Downvote Count");
+                                    console.log(number);
+                                    callback(err, number);
+                                });
+                            }
+                        }, function(err, counts) {
+                            result.likes = counts.likes;
+                            result.comments = counts.comments;
+                            result.upvotes = counts.upvotes;
+                            result.downvotes = counts.downvotes;
+                            result.myLike = counts.myLike;
+                            callback();
+                        });
+                    });
+                }, function(err) {
+                    if (err) return res.status(200).json({
+                        "status": 200,
+                        "success": { "result" : false, "message" : "There was an error" },
+                        "data": null,
+                        "error": err
+                    });
+
+                    if (!results || !results[0]) return res.status(200).json({
+                        "status": 200,
+                        "success": { "result" : false, "message" : "No conversations exist for user." },
+                        "data": null,
+                        "error": err
+                    });
+        
+                    res.status(200).json({
+                        "status": 200,
+                        "success": { "result" : true, "message" : "Request was successful" },
+                        "data": {
+                            "count": results.length,
+                            "data": generatePostObjects(results),
+                        },
+                        "error": err
+                    });
+                });
+            }); 
+        });
+    },
+    
+    retrievePostsByCategoryMongoDB: function(req, res) {
+        main.mongodb.postscol(function(collection) {
+            collection.aggregate(
+                {
+                    $match: {
+                        type : req.body.type,
+                        categories : { 
+                            $in: req.body.categories 
+                        },
+                        owner: {
+                            $nin: req.body.excludedIds || new Array()
+                        },
+                        id: {
+                            $nin: req.body.excludedIds || new Array()
+                        }
+                    }
+                }, { 
+                    $sort : { 
+                        createdAt : -1
+                    } 
+                }, {
+                    $lookup: {
+                        from: "user-geo",
+                        localField: "owner",
+                        foreignField: "uid",
+                        as: "_owner"
+                    }
+                }, { 
+                    $group: {
+                      _id: null,
+                    }
+                }
+            ).toArray(function(err, results) {
+                async.each(results, function(result, callback) {
+                    main.mongodb.engagementscol(function(eng_col) {
+                        async.parallel({
+                            myLike: function(callback) {
+                                if (typeof req.body.senderId === 'undefined') return callback(err, 0);
+                                eng_col.find({ 
+                                    owner: req.body.senderId,
+                                    post: result.id,
+                                    type: "1"
+                                }).count().then(function(number) {
+                                    callback(err, number);
+                                });
+                            },
+                            likes: function(callback) {
+                                eng_col.find({ 
+                                    post: result.id,
+                                    type: "1"
+                                }).count().then(function(number) {
+                                    callback(err, number);
+                                });
+                            },
+                            comments: function(callback) {
+                                eng_col.find({ 
+                                    post: result.id,
+                                    type: "2"
+                                }).count().then(function(number) {
+                                    console.log("Likes Count");
+                                    console.log(number);
+                                    callback(err, number);
+                                });
+                            },
+                            upvotes: function(callback) {
+                                eng_col.find({ 
+                                    post: result.id,
+                                    type: "3"
+                                }).count().then(function(number) {
+                                    console.log("Upvotes Count");
+                                    console.log(number);
+                                    callback(err, number);
+                                });
+                            },
+                            downvotes: function(callback) {
+                                eng_col.find({ 
+                                    post: result.id,
+                                    type: "4"
+                                }).count().then(function(number) {
+                                    console.log("Downvote Count");
+                                    console.log(number);
+                                    callback(err, number);
+                                });
+                            }
+                        }, function(err, counts) {
+                            result.likes = counts.likes;
+                            result.comments = counts.comments;
+                            result.upvotes = counts.upvotes;
+                            result.downvotes = counts.downvotes;
+                            result.myLike = counts.myLike;
+                            callback();
+                        });
+                    });
+                }, function(err) {
+                    if (err) return res.status(200).json({
+                        "status": 200,
+                        "success": { "result" : false, "message" : "There was an error" },
+                        "data": null,
+                        "error": err
+                    });
+
+                    if (!results || !results[0]) return res.status(200).json({
+                        "status": 200,
+                        "success": { "result" : false, "message" : "No posts available." },
+                        "data": null,
+                        "error": err
+                    });
+        
+                    res.status(200).json({
+                        "status": 200,
+                        "success": { "result" : true, "message" : "Request was successful" },
+                        "data": {
+                            "count": results.length,
+                            "data": generatePostObjects(results),
+                        },
+                        "error": err
+                    });
+                });
+            }); 
+        });
+    },
+
+    addLikeMongoDB: function(req, res) {
+        async.parallel({
+            addLike: function(callback) {
+                main.mongodb.engagementscol(function(collection) {
+                    var object = createEngagementObject(req.body.senderId, req.body.type, req.body.comment, req.body.post)
+                    collection.insertOne(object, function(err, engagement) {
+                        callback(err, engagement);
+                    });
+                });
+            },
+
+            addNotification: function(callback) {
+                main.mongodb.notificationscol(function(collection) {
+                    var object = createNotificationObject(req.body.senderId, req.body.ownerId, req.body.type, req.body.comment, req.body.post)
+                    collection.insertOne(object, function(err, notification) {
+                        callback(err, notification);
+                    });
+                });
+            }
+        }, function(err, results) {
+            if (err) return res.status(200).json({
+                "status": 200,
+                "success": { "result" : false, "message" : "There was an error" },
+                "data": null,
+                "error": err
+            });
+
+            if (!results) return res.status(200).json({
+                "status": 200,
+                "success": { "result" : false, "message" : "Something went wrong."},
+                "data": null,
+                "error": err
+            });
+
+            res.status(200).json({
+                "status": 200,
+                "success": { 
+                    "result" : true, 
+                    "message" : "Engagement was created" 
+                },
+                "data": {
+                    "engagement": results
+                },
+                "error": err
+            });
+        });
+    },
+
+    retrieveCommentsByPostMongoDB: function(req, res) {
+        main.mongodb.engagementscol(function(collection) {
+            collection.aggregate(
+                {
+                    $match: {
+                        type : "2",
+                        post : req.body.post,
+                        owner: {
+                            $nin: req.body.excludedIds || new Array()
+                        },
+                    }
+                }, { 
+                    $sort : { 
+                        createdAt : -1
+                    } 
+                }, {
+                    $lookup: {
+                        from: "user-geo",
+                        localField: "owner",
+                        foreignField: "uid",
+                        as: "_owner"
+                    }
+                }, { 
+                    $group: {
+                        _id: null,
+                    }
+                }
+            ).toArray(function(err, results) {
+                async.each(results, function(result, callback) {
+                    main.mongodb.engagementscol(function(eng_col) {
+                        async.parallel({
+                            myLike: function(callback) {
+                                if (typeof req.body.senderId === 'undefined') return callback(err, 0);
+                                eng_col.find({ 
+                                    owner: req.body.senderId,
+                                    post: result.id,
+                                    type: "1"
+                                }).count().then(function(number) {
+                                    callback(err, number);
+                                });
+                            },
+                            likes: function(callback) {
+                                eng_col.find({ 
+                                    post: result.id,
+                                    type: "1"
+                                }).count().then(function(number) {
+                                    callback(err, number);
+                                });
+                            },
+                            comments: function(callback) {
+                                eng_col.find({ 
+                                    post: result.id,
+                                    type: "2"
+                                }).count().then(function(number) {
+                                    console.log("Likes Count");
+                                    console.log(number);
+                                    callback(err, number);
+                                });
+                            },
+                            upvotes: function(callback) {
+                                eng_col.find({ 
+                                    post: result.id,
+                                    type: "3"
+                                }).count().then(function(number) {
+                                    console.log("Upvotes Count");
+                                    console.log(number);
+                                    callback(err, number);
+                                });
+                            },
+                            downvotes: function(callback) {
+                                eng_col.find({ 
+                                    post: result.id,
+                                    type: "4"
+                                }).count().then(function(number) {
+                                    console.log("Downvote Count");
+                                    console.log(number);
+                                    callback(err, number);
+                                });
+                            }
+                        }, function(err, counts) {
+                            result.likes = counts.likes;
+                            result.comments = counts.comments;
+                            result.upvotes = counts.upvotes;
+                            result.downvotes = counts.downvotes;
+                            result.myLike = counts.myLike;
+                            callback();
+                        });
+                    });
+                }, function(err) {
+                    if (err) return res.status(200).json({
+                        "status": 200,
+                        "success": { "result" : false, "message" : "There was an error" },
+                        "data": null,
+                        "error": err
+                    });
+
+                    if (!results || !results[0]) return res.status(200).json({
+                        "status": 200,
+                        "success": { "result" : false, "message" : "No conversations exist for user." },
+                        "data": null,
+                        "error": err
+                    });
+        
+                    res.status(200).json({
+                        "status": 200,
+                        "success": { "result" : true, "message" : "Request was successful" },
+                        "data": {
+                            "count": results.length,
+                            "data": generateEngagementObjects(results),
+                        },
+                        "error": err
+                    });
+                });
+            }); 
+        });
+    },
+
+    retrieveActivityForUserMongoDB: function(req, res) {
+        main.mongodb.notificationscol(function(collection) {
+            collection.aggregate(
+                { 
+                    $match: {
+                        owner: req.body.senderId,
+                    }
+                }, { 
+                    $sort : { 
+                        createdAt: -1
+                    } 
+                }, {
+                    $lookup: {
+                        from: "user-geo",
+                        localField: "senderId",
+                        foreignField: "uid",
+                        as: "_senderId"
+                    }
+                }, {
+                    $lookup: {
+                        from: "user-geo",
+                        localField: "owner",
+                        foreignField: "uid",
+                        as: "_owner"
+                    }
+                },  {
+                    $lookup: {
+                        from: "engagements",
+                        localField: "post",
+                        foreignField: "id",
+                        as: "_post"
+                    }
+                },  {
+                    $lookup: {
+                        from: "posts",
+                        localField: "post",
+                        foreignField: "id",
+                        as: "_post"
+                    }
+                }, { 
+                    $group: {
+                        _id : null, 
+                    }
+                }
+            ).toArray(function(err, notifications) {
+                console.log(notifications);
+                if (err) return res.status(200).json({
+                    "status": 200,
+                    "success": { "result" : false, "message" : "There was an error" },
+                    "data": null,
+                    "error": err
+                });
+                res.status(200).json({
+                    "status": 200,
+                    "success": { "result" : true, "message" : "Request was successful" },
+                    "data": {
+                        "count": notifications.length,
+                        "data": generateNotifcationObjects(notifications) 
+                    },
+                    "error": err
+                });
+            });
+        });
+    },
+
+    retrieveOthersActivityForUserMongoDB: function(req, res) {
+        main.mongodb.notificationscol(function(collection) {
+            collection.aggregate(
+                {
+                    $match: {
+                        owner: req.body.senderId,
+                    },
+                }, { 
+                    $sort : { 
+                        createdAt : -1
+                    } 
+                }, {
+                    $lookup: {
+                        from: "posts",
+                        localField: "post",
+                        foreignField: "id",
+                        as: "_post"
+                    }
+                }, {
+                    $unwind: "$_post"
+                }, {
+                    $lookup: {
+                        from: "user-geo",
+                        localField: "owner",
+                        foreignField: "uid",
+                        as: "_post._owner"
+                    }
+                }, { 
+                    $group: {
+                        _id : null, 
+                    }
+                }
+            ).toArray(function(err, results) {
+                console.log(results);
+                if (err) return res.status(200).json({
+                    "status": 200,
+                    "success": { "result" : false, "message" : "There was an error" },
+                    "data": null,
+                    "error": err
+                });
+
+                if (!results || !results[0]) return res.status(200).json({
+                    "status": 200,
+                    "success": { "result" : false, "message" : "No posts available." },
+                    "data": null,
+                    "error": err
+                });
+    
+                res.status(200).json({
+                    "status": 200,
+                    "success": { "result" : true, "message" : "Request was successful" },
+                    "data": {
+                        "count": results.length,
+                        "data": generateOthersNotifcationObjects(results),
+                    },
+                    "error": err
+                });
+            }); 
+        });
+    },
+
+    retrievePostsBySearchMongoDB: function(req, res) {
+        main.mongodb.postscol(function(collection) {
+            collection.find(
+                {
+                    owner: {
+                        $nin: req.body.excludedIds || new Array()
+                    },
+                    $text: {
+                        $search : req.body.string,
+                    }
+                }, { 
+                    $sort : { 
+                        createdAt : -1
+                    } 
+                }
+            ).toArray(function(err, results) {
+                console.log(results);
+                async.each(results, function(result, callback) {
+                    main.mongodb.engagementscol(function(eng_col) {
+                        async.parallel({
+                            myLike: function(callback) {
+                                if (typeof req.body.senderId === 'undefined') return callback(err, 0);
+                                eng_col.find({ 
+                                    owner: req.body.senderId,
+                                    post: result.id,
+                                    type: "1"
+                                }).count().then(function(number) {
+                                    callback(err, number);
+                                });
+                            },
+                            likes: function(callback) {
+                                eng_col.find({ 
+                                    post: result.id,
+                                    type: "1"
+                                }).count().then(function(number) {
+                                    callback(err, number);
+                                });
+                            },
+                            comments: function(callback) {
+                                eng_col.find({ 
+                                    post: result.id,
+                                    type: "2"
+                                }).count().then(function(number) {
+                                    console.log("Likes Count");
+                                    console.log(number);
+                                    callback(err, number);
+                                });
+                            },
+                            upvotes: function(callback) {
+                                eng_col.find({ 
+                                    post: result.id,
+                                    type: "3"
+                                }).count().then(function(number) {
+                                    console.log("Upvotes Count");
+                                    console.log(number);
+                                    callback(err, number);
+                                });
+                            },
+                            downvotes: function(callback) {
+                                eng_col.find({ 
+                                    post: result.id,
+                                    type: "4"
+                                }).count().then(function(number) {
+                                    console.log("Downvote Count");
+                                    console.log(number);
+                                    callback(err, number);
+                                });
+                            },
+                            owner: function(callback) {
+                                main.mongodb.usergeo(function(geo_col){
+                                    geo_col.findOne({ 
+                                        uid: result.owner,
+                                    }, function(err, user) {
+                                        console.log(user);
+                                        callback(err, user);
+                                    });
+                                });
+                            },
+                        }, function(err, counts) {
+                            result.likes = counts.likes;
+                            result.comments = counts.comments;
+                            result.upvotes = counts.upvotes;
+                            result.downvotes = counts.downvotes;
+                            result.myLike = counts.myLike;
+                            result._owner = [counts.owner];
+                            callback();
+                        });
+                    });
+                }, function(err) {
+                    if (err) return res.status(200).json({
+                        "status": 200,
+                        "success": { "result" : false, "message" : "There was an error" },
+                        "data": null,
+                        "error": err
+                    });
+
+                    if (!results || !results[0]) return res.status(200).json({
+                        "status": 200,
+                        "success": { "result" : false, "message" : "No conversations exist for user." },
+                        "data": null,
+                        "error": err
+                    });
+        
+                    res.status(200).json({
+                        "status": 200,
+                        "success": { "result" : true, "message" : "Request was successful" },
+                        "data": {
+                            "count": results.length,
+                            "data": generatePostObjects(results),
+                        },
+                        "error": err
+                    });
+                });
+            }); 
+        });
+    },
+
+    reportPost: function(req, res) {
+        main.nodemailer(function(transporter) {
+            var error;
+            transporter.sendMail({
+                from: "thedadhive@gmail.com",
+                to: "info@redroostertec.com",
+                subject: "Report Post: " + req.body.reportPostId,
+                html: '<b>Hello</b><br>' + req.body.senderEmail + ' would like to report post with the ID: ' + req.body.reportPostId + ' for inappropriate content on ' + Date() + '.'
+            }, function(err, response) {
+                console.log(response);
+                console.log(error);
+                error = err
+            });
+            if (typeof error === 'undefined' || error === null) {
+                res.status(200).json({
+                    "status": 200,
+                    "success": {
+                            "result" : true, 
+                            "message" : "Email was sent." 
+                    },
+                    "data": req.body,
+                    "error": null
+                });
+                transporter.close();
+            } else {
+                res.status(200).json({
+                    "status": 200,
+                    "success": {
+                            "result" : false, 
+                            "message" : "Email was not sent." 
+                    },
+                    "data": req.body,
+                    "error": genericFailure
+                });
+                transporter.close();
+            }
+        });
+    },
+
+    blockPostMongoDB: function(req, res) {
+        main.mongodb.actioncol(function(collection) {
+            collection.updateOne(
+                {
+                    "owner": req.body.senderId
+                },{
+                    $set: {
+                        updatedAt: new Date(),
+                    }, 
+                    $addToSet: { 
+                        blocked: req.body.objectId 
+                    },
+                    $pull: { 
+                        matches: req.body.objectId 
+                    }
+                },{
+                    multi: true,
+                    upsert: true
+                }
+            , function(err, result) {
+                if (err) return res.status(200).json({
+                    "status": 200,
+                    "success": { "result" : false, "message" : "There was an error" },
+                    "data": null,
+                    "error": err
+                });
+                if (!result) return res.status(200).json({
+                    "status": 200,
+                    "success": { "result" : false, "message" : "Post was not blocked." },
+                    "data": null,
+                    "error": err
+                });
+    
+                res.status(200).json({
+                    "status": 200,
+                    "success": { "result" : true, "message" : "Post was blocked" },
+                    "data": null,
+                    "error": err
+                });
+            });
+        });
+    },
+
+    deletePostMongoDB: function(req, res) {
+        main.mongodb.actioncol(function(collection) {
+            collection.updateOne(
+                {
+                    "owner": req.body.senderId
+                },{
+                    $set: {
+                        updatedAt: new Date(),
+                    }, 
+                    $addToSet: { 
+                        blocked: req.body.objectId 
+                    },
+                    $pull: { 
+                        matches: req.body.objectId 
+                    }
+                },{
+                    multi: true,
+                    upsert: true
+                }
+            , function(err, result) {
+                if (err) return res.status(200).json({
+                    "status": 200,
+                    "success": { "result" : false, "message" : "There was an error" },
+                    "data": null,
+                    "error": err
+                });
+                if (!result) return res.status(200).json({
+                    "status": 200,
+                    "success": { "result" : false, "message" : "Post was not blocked." },
+                    "data": null,
+                    "error": err
+                });
+    
+                res.status(200).json({
+                    "status": 200,
+                    "success": { "result" : true, "message" : "Post was blocked" },
+                    "data": null,
+                    "error": err
+                });
+            });
+        });
+    },
+
+    retrievePostsByUserMongoDB: function(req, res) {
+        main.mongodb.postscol(function(collection) {
+            collection.find(
+                {
+                    owner: req.body.senderId
+                }, { 
+                    $sort : { 
+                        createdAt : -1
+                    } 
+                }
+            ).toArray(function(err, results) {
+                console.log(results);
+                async.each(results, function(result, callback) {
+                    main.mongodb.engagementscol(function(eng_col) {
+                        async.parallel({
+                            myLike: function(callback) {
+                                if (typeof req.body.senderId === 'undefined') return callback(err, 0);
+                                eng_col.find({ 
+                                    owner: req.body.senderId,
+                                    post: result.id,
+                                    type: "1"
+                                }).count().then(function(number) {
+                                    callback(err, number);
+                                });
+                            },
+                            likes: function(callback) {
+                                eng_col.find({ 
+                                    post: result.id,
+                                    type: "1"
+                                }).count().then(function(number) {
+                                    callback(err, number);
+                                });
+                            },
+                            comments: function(callback) {
+                                eng_col.find({ 
+                                    post: result.id,
+                                    type: "2"
+                                }).count().then(function(number) {
+                                    console.log("Likes Count");
+                                    console.log(number);
+                                    callback(err, number);
+                                });
+                            },
+                            upvotes: function(callback) {
+                                eng_col.find({ 
+                                    post: result.id,
+                                    type: "3"
+                                }).count().then(function(number) {
+                                    console.log("Upvotes Count");
+                                    console.log(number);
+                                    callback(err, number);
+                                });
+                            },
+                            downvotes: function(callback) {
+                                eng_col.find({ 
+                                    post: result.id,
+                                    type: "4"
+                                }).count().then(function(number) {
+                                    console.log("Downvote Count");
+                                    console.log(number);
+                                    callback(err, number);
+                                });
+                            },
+                            owner: function(callback) {
+                                main.mongodb.usergeo(function(geo_col){
+                                    geo_col.findOne({ 
+                                        uid: result.owner,
+                                    }, function(err, user) {
+                                        console.log(user);
+                                        callback(err, user);
+                                    });
+                                });
+                            },
+                        }, function(err, counts) {
+                            result.likes = counts.likes;
+                            result.comments = counts.comments;
+                            result.upvotes = counts.upvotes;
+                            result.downvotes = counts.downvotes;
+                            result.myLike = counts.myLike;
+                            result._owner = [counts.owner];
+                            callback();
+                        });
+                    });
+                }, function(err) {
+                    if (err) return res.status(200).json({
+                        "status": 200,
+                        "success": { "result" : false, "message" : "There was an error" },
+                        "data": null,
+                        "error": err
+                    });
+
+                    if (!results || !results[0]) return res.status(200).json({
+                        "status": 200,
+                        "success": { "result" : false, "message" : "No conversations exist for user." },
+                        "data": null,
+                        "error": err
+                    });
+        
+                    res.status(200).json({
+                        "status": 200,
+                        "success": { "result" : true, "message" : "Request was successful" },
+                        "data": {
+                            "count": results.length,
+                            "data": generatePostObjects(results),
+                        },
+                        "error": err
+                    });
+                });
+            }); 
+        });
+    },
+
+    retrieveBlockedUsersMongoDB: function(req, res) {
+        main.mongodb.usergeo(function(collection) {
+            collection.find(
+                {
+                    uid: {
+                        $in: req.body.excludedIds || new Array()
+                    }
+                }, { 
+                    $sort : { 
+                        name : -1
+                    } 
+                }
+            ).toArray(function(err, result) {
+                if (err) return res.status(200).json({
+                    "status": 200,
+                    "success": { "result" : false, "message" : "There was an error" },
+                    "data": null,
+                    "error": err
+                });
+
+                if (!result) return res.status(200).json({
+                    "status": 200,
+                    "success": { "result" : false, "message" : "User does not exist." },
+                    "data": null,
+                    "error": err
+                });
+
+                res.status(200).json({
+                    "status": 200,
+                    "success": { "result" : true, "message" : "Request was successful" },
+                    "data": {
+                        "users": result.map(generateUserModel)
+                    },
+                    "error": err
+                });
+            }); 
+        });  
+    },
+
+    unblockUserMongoDB: function(req, res) {
+        async.parallel({
+            deleteMatchFromSender: function(callback) {
+                main.mongodb.actioncol(function(collection) {
+                    collection.updateOne({
+                        owner: req.body.senderId
+                    }, {
+                        $pull: { 
+                            blocked: { 
+                                $in: [req.body.recipientId]
+                            }
+                        }
+                    }, function(err) {
+                        if (err) return callback(err, false);
+                        callback(err, true);
+                    });
+                });
+            },
+            deleteMatchFromRecipient: function(callback) {
+                main.mongodb.actioncol(function(collection) {
+                    collection.updateOne({
+                        owner: req.body.recipientId
+                    }, {
+                        $pull: { 
+                            blocked: { 
+                                $in: [req.body.senderId]
+                            }
+                        }
+                    }, function(err) {
+                        if (err) return callback(err, false);
+                        callback(err, true);
+                    });
+                });
+            }
+        }, function(err, results) {
+            if (err) return handleJSONResponse(200, err, genericFailure, results, res);
+            if (results.deleteMatchFromSender === false || results.deleteMatchFromRecipient === false) {
+                res.status(200).json({
+                    "status": 200,
+                    "success": { "result" : false, "message" : "There was an error" },
+                    "data": null,
+                    "error": err
+                });
+            } else {
+                res.status(200).json({
+                    "status": 200,
+                    "success": { "result" : true, "message" : "User unmatching was successful" },
+                    "data": { },
+                    "error": err
+                });
             }
         });
     },
@@ -3394,131 +4518,6 @@ module.exports = {
     }
 }
 
-function createEmptyUserObject(email, name, uid, type, kidsCount, maritalStatus, linkedin, facebook, instagram, ageRanges, kidsNames, refreshToken) {
-    var data = {
-        id: randomstring.generate(25),
-        refreshToken: refreshToken,
-        email: email,
-        name: name,
-        uid: uid,
-        createdAt: new Date(),
-        lastLogin: new Date(),
-        type: type,
-        maritalStatus: maritalStatus,
-        preferredCurrency: 'USD',
-        notifications : false,
-        maxDistance : 25.0,
-        ageRangeId: ageRanges,
-        ageRangeMin: 0,
-        ageRangeMax: 0,
-        initialSetup : false,
-        userProfilePicture_1_url: null,
-        userProfilePicture_1_meta: null,
-        userProfilePicture_2_url: null,
-        userProfilePicture_2_meta: null,
-        userProfilePicture_3_url: null,
-        userProfilePicture_3_meta: null,
-        userProfilePicture_4_url: null,
-        userProfilePicture_4_meta: null,
-        userProfilePicture_5_url: null,
-        userProfilePicture_5_meta: null,
-        userProfilePicture_6_url: null,
-        userProfilePicture_6_meta: null,
-        dob: null,
-        addressLine1 : null,
-        addressLine2 : null,
-        addressLine3 : null,
-        addressLine4 : null,
-        addressCity : null,
-        addressState : null,
-        addressZipCode : null,
-        addressLong : null,
-        addressLat : null,
-        addressCountry: null,
-        addressDescription: null,
-        bio: null,
-        jobTitle: null,
-        companyName: null,
-        schoolName: null,
-        kidsCount: 0,
-        kidsNames: kidsNames,
-        kidsAges: null,
-        kidsBio: null,
-        kidsCount: kidsCount,
-        questionOneTitle: null,
-        questionOneResponse: null,
-        questionTwoTitle: null,
-        questionTwoResponse: null,
-        questionThreeTitle: null,
-        questionThreeResponse: null,
-        canSwipe: true,
-        nextSwipeDate: null,
-        profileCreation : false,
-        socialInstagram: instagram,
-        socialFacebook: facebook,
-        socialLinkedIn: linkedin
-    }
-    if (ageRanges == 0) {
-        data.ageRangeMin = 2;
-        data.ageRangeMax = 4;
-    }
-
-    if (ageRanges == 1) {
-        data.ageRangeMin = 4;
-        data.ageRangeMax = 7;
-    }
-
-    if (ageRanges == 2) {
-        data.ageRangeMin = 7;
-        data.ageRangeMax = 10;
-    }
-
-    if (ageRanges == 3) {
-        data.ageRangeMin = 10;
-        data.ageRangeMax = 13;
-    }
-    return data
-}
-
-function createMessageObject(conversationId, message, senderId) {
-    var data = {
-        id: randomstring.generate(25),
-        conversationId: conversationId,
-        message: message,
-        createdAt: new Date(),
-        senderId: senderId,
-        attachment: null
-    }
-    return data
-}
-
-function createConversationObject(senderId, recipientId) {
-    var data = {
-        id: randomstring.generate(25),
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        owner: senderId,
-        participants: [senderId, recipientId],
-        lastMessageId: null,
-        lastMessageText: null,
-    }
-    return data
-}
-
-function createEmptyActionObject(uid) {
-    var data = {
-        id: randomstring.generate(25),
-        owner: uid,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        likes: [],
-        matches: [],
-        blocked: [],
-        conversations: [],
-    }
-    return data
-}
-
 function checkForUser (uid, callback) {
     main.firebase.firebase_firestore_db(function(reference) {
         if (!reference) { 
@@ -3668,6 +4667,183 @@ function checkForMessages (conversationId, callback) {
     retrieveWithParameters(kMessages, parameters, function(success, error, results) {
         callback(success, error, results);
     });
+}
+
+//  MARK:- MODEL FACTORIES
+function createEmptyUserObject(email, name, uid, type, kidsCount, maritalStatus, linkedin, facebook, instagram, ageRanges, kidsNames, refreshToken) {
+    var data = {
+        id: randomstring.generate(25),
+        refreshToken: refreshToken,
+        email: email,
+        name: name,
+        uid: uid,
+        createdAt: new Date(),
+        lastLogin: new Date(),
+        type: type,
+        maritalStatus: maritalStatus,
+        preferredCurrency: 'USD',
+        notifications : false,
+        maxDistance : 25.0,
+        ageRangeId: ageRanges,
+        ageRangeMin: 0,
+        ageRangeMax: 0,
+        initialSetup : false,
+        userProfilePicture_1_url: null,
+        userProfilePicture_1_meta: null,
+        userProfilePicture_2_url: null,
+        userProfilePicture_2_meta: null,
+        userProfilePicture_3_url: null,
+        userProfilePicture_3_meta: null,
+        userProfilePicture_4_url: null,
+        userProfilePicture_4_meta: null,
+        userProfilePicture_5_url: null,
+        userProfilePicture_5_meta: null,
+        userProfilePicture_6_url: null,
+        userProfilePicture_6_meta: null,
+        dob: null,
+        addressLine1 : null,
+        addressLine2 : null,
+        addressLine3 : null,
+        addressLine4 : null,
+        addressCity : null,
+        addressState : null,
+        addressZipCode : null,
+        addressLong : null,
+        addressLat : null,
+        addressCountry: null,
+        addressDescription: null,
+        bio: null,
+        jobTitle: null,
+        companyName: null,
+        schoolName: null,
+        kidsCount: 0,
+        kidsNames: kidsNames,
+        kidsAges: null,
+        kidsBio: null,
+        kidsCount: kidsCount,
+        questionOneTitle: null,
+        questionOneResponse: null,
+        questionTwoTitle: null,
+        questionTwoResponse: null,
+        questionThreeTitle: null,
+        questionThreeResponse: null,
+        canSwipe: true,
+        nextSwipeDate: null,
+        profileCreation : false,
+        socialInstagram: instagram,
+        socialFacebook: facebook,
+        socialLinkedIn: linkedin
+    }
+    if (ageRanges == 0) {
+        data.ageRangeMin = 2;
+        data.ageRangeMax = 4;
+    }
+
+    if (ageRanges == 1) {
+        data.ageRangeMin = 4;
+        data.ageRangeMax = 7;
+    }
+
+    if (ageRanges == 2) {
+        data.ageRangeMin = 7;
+        data.ageRangeMax = 10;
+    }
+
+    if (ageRanges == 3) {
+        data.ageRangeMin = 10;
+        data.ageRangeMax = 13;
+    }
+    return data
+}
+
+function createMessageObject(conversationId, message, senderId) {
+    var data = {
+        id: randomstring.generate(25),
+        conversationId: conversationId,
+        message: message,
+        createdAt: new Date(),
+        senderId: senderId,
+        attachment: null
+    }
+    return data
+}
+
+function createConversationObject(senderId, recipientId) {
+    var data = {
+        id: randomstring.generate(25),
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        owner: senderId,
+        participants: [senderId, recipientId],
+        lastMessageId: null,
+        lastMessageText: null,
+    }
+    return data
+}
+
+function createEmptyActionObject(uid) {
+    var data = {
+        id: randomstring.generate(25),
+        owner: uid,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        likes: [],
+        matches: [],
+        blocked: [],
+        conversations: [],
+    }
+    return data
+}
+
+function createCategoryObject(label) {
+    var data = {
+        id: randomstring.generate(25),
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        label: label
+    }
+    return data
+}
+
+function createPostObject(senderId, type, categories, description, media) {
+    var data = {
+        id: randomstring.generate(25),
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        owner: senderId,
+        type: type,
+        categories: categories,
+        description: description,
+        media: media,
+    }
+    return data
+}
+
+function createEngagementObject(senderId, type, comment, post) {
+    var data = {
+        id: randomstring.generate(25),
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        owner: senderId,
+        type: type,
+        post: post,
+        comment: comment,
+    }
+    return data
+}
+
+function createNotificationObject(senderId, ownerId, type, comment, post) {
+    var data = {
+        id: randomstring.generate(25),
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        senderId: senderId,
+        owner: ownerId,
+        post: post,
+        type: type,
+        comment: comment,
+    }
+    return data
 }
 
 //  MARK:- Model Generators
@@ -3843,6 +5019,15 @@ function generateActionModel(doc) {
     return data
 }
 
+// MARK:- CONVERSATIONS
+function generateConversationsModel(docs) {
+    var objects = new Array();
+    docs.forEach(function(doc) {
+        objects.push(generateConversationModel(doc));
+    });
+    return categories
+}
+
 function generateConversationModel(doc) {
     var data = { 
         _id: doc._id,
@@ -3854,6 +5039,15 @@ function generateConversationModel(doc) {
         updatedAt: doc.updatedAt
     }
     return data
+}
+
+// MARK:- MESSAGES
+function generateMessagesModel(docs) {
+    var objects = new Array();
+    docs.forEach(function(doc) {
+        objects.push(generateMessageModel(doc));
+    });
+    return categories
 }
 
 function generateMessageModel(document, doc) {
@@ -3880,7 +5074,206 @@ function generateEmptyMessageModel() {
     return data
 }
 
-//  MARK:- Useful functions
+// MARK:- CATEGORIES
+function generateCategoryModels(docs) {
+    var categories = new Array();
+    docs.forEach(function(doc) {
+        categories.push(generateCategoryModel(doc));
+    });
+    return categories
+}
+
+function generateCategoryModel(doc) {
+    var data = {
+        _id: doc._id,
+        id: doc.id,
+        createdAt: doc.createdAt,
+        updatedAt: doc.updatedAt,
+        label: doc.label
+    }
+    return data
+}
+
+// MARK:- POSTS
+function generatePostObjects(docs) {
+    var array = new Array();
+    docs.forEach(function(doc) {
+        array.push(generatePostObject(doc));
+    });
+    return array
+}
+
+function generatePostObject(doc) {
+    console.log("Post object is")
+    console.log(doc);
+    var data = {
+        id: doc.id,
+        _id: doc._id,
+        createdAt: timeAgo(doc.createdAt),
+        updatedAt: doc.updatedAt,
+        type: doc.type,
+        description: doc.description,
+        media: doc.media,
+        numOfLikes: doc.likes,
+        numOfComments: doc.comments,
+        numOfUpvotes: doc.upvotes,
+        numOfDownvotes: doc.downvotes,
+        myLike: doc.myLike
+    }
+
+    if (typeof(doc._owner) !== "undefined") {
+        if (doc._owner.length > 0) {
+            data.owner = doc._owner.map(generateUserModel);
+        }
+    }
+    if (typeof(doc._categories) !== "undefined") {
+        if (doc._categories.length > 0) {
+            data.categories = doc._categories.map(generateCategoryModel);
+        }
+    }
+
+    if (typeof(doc._engagements) !== "undefined" ) {
+        if (doc._engagements.length > 0) {
+            data.engagements = doc._engagements.map(generateEngagementObject);
+        }
+    }
+
+    return data
+}
+
+// MARK:- ENGAGEMENTS
+function generateEngagementObjects(docs) {
+    var array = new Array();
+    docs.forEach(function(doc) {
+        array.push(generateEngagementObject(doc));
+    });
+    return array
+}
+
+function generateEngagementObject(doc) {
+    var data = {
+        id: doc.id,
+        createdAt: timeAgo(doc.createdAt),
+        updatedAt: doc.updatedAt,
+        owner: doc._owner.map(generateUserModel),
+        type: doc.type,
+        comment: doc.comment,
+        post: doc.post,
+        numOfLikes: doc.likes,
+        numOfComments: doc.comments,
+        numOfUpvotes: doc.upvotes,
+        numOfDownvotes: doc.downvotes,
+        myLike: doc.myLike
+    }
+
+    if (typeof doc.media !== 'undefined') {
+        data.media = doc.media;
+    }
+
+    return data
+}
+
+// MARK: - Activity
+function generateNotifcationObjects(docs) {
+    var array = new Array();
+    console.log(docs.length);
+    docs.forEach(function(doc) {
+        array.push(generateNotifcationObject(doc));
+    });
+    return array
+}
+
+function generateNotifcationObject(doc) {
+    var data = {
+        _id: doc._id,
+        id: doc.id,
+        createdAt: timeAgo(doc.createdAt),
+        updatedAt: doc.updatedAt,
+        type: doc.type,
+    }
+    
+
+    if (typeof(doc._senderId) !== "undefined" ) {
+        if (doc._senderId.length > 0) {
+            data.senderId = doc._senderId.map(generateUserModel);
+        }
+    }
+
+    if (typeof(doc._owner) !== "undefined" ) {
+        if (doc._owner.length > 0) {
+            data.owner = doc._owner.map(generateUserModel);
+        }
+    }
+
+    if (typeof(doc._post) !== "undefined" ) {
+        if (doc._post.length > 0) {
+            data.post = doc._post.map(generatePostObject);
+        }
+    }
+
+    if (typeof(doc.comment) !== "undefined" ) {
+        data.comment = doc.comment;
+    }
+
+    if ((typeof(data.owner) !== "undefined") && (typeof(data.post) !== "undefined" )) {
+        if (data.type === "1") {
+            data.message = (data.owner[0].name.name || "Someone") + " liked your post"
+        }
+
+        if (data.type === "2") {
+            data.message = (data.owner[0].name.name || "Someone") + " commented your post"
+        }
+
+        if (data.type === "3") {
+            data.message = (data.owner[0].name.name || "Someone") + " upvoted your post"
+        }
+    }
+    return data
+}
+
+function generateOthersNotifcationObjects(docs) {
+    var array = new Array();
+    console.log(docs.length);
+    docs.forEach(function(doc) {
+        array.push(generateOthersNotifcationObject(doc));
+    });
+    return array
+}
+
+function generateOthersNotifcationObject(doc) {
+    console.log(doc)
+    var data = {
+        _id: doc._id,
+        id: doc.id,
+        createdAt: timeAgo(doc.createdAt),
+        updatedAt: doc.updatedAt,
+        type: doc.type,
+    }
+
+    if (typeof(doc._post) !== "undefined" ) {
+        console.log("Post being parsed.")
+        data.post = [generatePostObject(doc._post)]
+    }
+
+    if (typeof(doc.comment) !== "undefined" ) {
+        data.comment = doc.comment;
+    }
+
+    if (data.type === "1") {
+        data.message = "You liked a post"
+    }
+
+    if (data.type === "2") {
+        data.message = "You commented on a post"
+    }
+
+    if (data.type === "3") {
+        data.message = "You upvoted a post"
+    }
+    return data
+}
+
+//  MARK:- UTILITIES
 function getMeters(fromMiles) {
     return fromMiles * 1609.344;
 }
@@ -3891,3 +5284,88 @@ function createSession(req, data) {
     req.DadHiveiwo3ihn2o3in2goi3bnoi.token = data.token;
     req.DadHiveiwo3ihn2o3in2goi3bnoi.refresh = data.refreshToken;
 }
+
+const MONTH_NAMES = [
+    'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December'
+  ];
+  
+
+function getFormattedDate(date, prefomattedDate = false, hideYear = false) {
+    var day = date.getDate();
+    var month = MONTH_NAMES[date.getMonth()];
+    var year = date.getFullYear();
+    var hours = date.getHours();
+    var minutes = date.getMinutes();
+    var getCurrentAmPm = hours >= 12 ? 'PM' : 'AM';
+    hours = hours % 12;
+    hours = hours ? hours : 12;    
+  
+    if (minutes < 10) {
+      // Adding leading zero to minutes
+      minutes = `0${ minutes }`;
+    }
+  
+    if (prefomattedDate) {
+        // Today at 10:20
+        // Yesterday at 10:20
+        //   return `${ prefomattedDate } at ${ hours }:${ minutes } ${ getCurrentAmPm }`;
+        return `${ prefomattedDate }`;
+    }
+  
+    if (hideYear) {
+      // 10. January at 10:20
+      return `${ day }. ${ month } at ${ hours }:${ minutes } ${ getCurrentAmPm }`;
+    }
+  
+    // 10. January 2017. at 10:20
+    return `${ day }. ${ month } ${ year }. at ${ hours }:${ minutes } ${ getCurrentAmPm }`;
+  }
+  
+  
+  // --- Main function
+  function formatAMPM(date) {
+    var hours = date.getHours();
+    var minutes = date.getMinutes();
+    var ampm = hours >= 12 ? 'pm' : 'am';
+    hours = hours % 12;
+    hours = hours ? hours : 12; // the hour '0' should be '12'
+    minutes = minutes < 10 ? '0'+minutes : minutes;
+    var strTime = hours + ':' + minutes + ' ' + ampm;
+    return strTime;
+  }
+  
+  function timeAgo(dateParam) {
+    if (!dateParam) {
+      return null;
+    }
+  
+    const date = typeof dateParam === 'object' ? dateParam : new Date(dateParam);
+    const DAY_IN_MS = 86400000; // 24 * 60 * 60 * 1000
+    const today = new Date();
+    const yesterday = new Date(today - DAY_IN_MS);
+    const seconds = Math.round((today - date) / 1000);
+    const minutes = Math.round(seconds / 60);
+    const isToday = today.toDateString() === date.toDateString();
+    const isYesterday = yesterday.toDateString() === date.toDateString();
+    const isThisYear = today.getFullYear() === date.getFullYear();
+  
+  
+    if (seconds < 5) {
+      return 'now';
+    } else if (seconds < 60) {
+      return `${ seconds } seconds ago`;
+    } else if (seconds < 90) {
+      return 'about a minute ago';
+    } else if (minutes < 60) {
+      return `${ minutes } minutes ago`;
+    } else if (isToday) {
+      return getFormattedDate(date, 'Today'); // Today at 10:20
+    } else if (isYesterday) {
+      return getFormattedDate(date, 'Yesterday'); // Yesterday at 10:20
+    } else if (isThisYear) {
+      return getFormattedDate(date, false, true); // 10. January at 10:20
+    }
+  
+    return getFormattedDate(date); // 10. January 2017. at 10:20
+  }

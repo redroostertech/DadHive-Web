@@ -156,6 +156,87 @@ router.post('/reportUser', function(req, res) {
     dadhiveFunctions.reportUser(req, res);
 });
 
+router.get('/getCategories', function(req, res) {
+    console.log(req.body);
+    dadhiveFunctions.retrieveAllCategoriesMongoDB(req, res);
+});
+
+router.post('/addCategory', function(req, res) {
+    console.log(req.body);
+    dadhiveFunctions.addCategoryMongoDB(req, res);
+});
+
+router.post('/addPost', function(req, res) {
+    console.log(req.body);
+    dadhiveFunctions.addPostMongoDB(req, res);
+});
+
+router.post('/getPosts', function(req, res) {
+    console.log(req.body);
+    dadhiveFunctions.retrieveAllPostsMongoDB(req, res);
+});
+
+router.post('/getPostsByCategory', function(req, res) {
+    console.log(req.body);
+    dadhiveFunctions.retrievePostsByCategoryMongoDB(req, res);
+});
+
+router.post('/addEngagement', function(req, res) {
+    console.log(req.body);
+    dadhiveFunctions.addLikeMongoDB(req, res);
+});
+
+router.post('/getCommentsForPost', function(req, res) {
+    console.log(req.body);
+    dadhiveFunctions.retrieveCommentsByPostMongoDB(req, res);
+});
+
+router.post('/getActivityForUser', function(req, res) {
+    console.log(req.body);
+    dadhiveFunctions.retrieveActivityForUserMongoDB(req, res);
+});
+
+router.post('/getUserActivity', function(req, res) {
+    console.log(req.body);
+    dadhiveFunctions.retrieveOthersActivityForUserMongoDB(req, res);
+});
+
+router.post('/searchForPost', function(req, res) {
+    console.log(req.body);
+    dadhiveFunctions.retrievePostsBySearchMongoDB(req, res);
+});
+
+router.post('/reportPost', function(req, res) {
+    dadhiveFunctions.reportPost(req, res);
+});
+
+router.post('/blockPost', function(req, res) {
+    dadhiveFunctions.blockPostMongoDB(req, res);
+});
+
+router.post('/blockUser', function(req, res) {
+    dadhiveFunctions.blockUserMongoDB(req, res);
+});
+
+router.post('/deletePost', function(req, res) {
+    dadhiveFunctions.deletePostMongoDB(req, res);
+});
+
+router.post('/getPostsByUser', function(req, res) {
+    console.log(req.body);
+    dadhiveFunctions.retrievePostsByUserMongoDB(req, res);
+});
+
+router.post('/getBlockedUsers', function(req, res) {
+    console.log(req.body);
+    dadhiveFunctions.retrieveBlockedUsersMongoDB(req, res);
+});
+
+router.post('/unblockUser', function(req, res) {
+    console.log(req.body);
+    dadhiveFunctions.unblockUserMongoDB(req, res);
+});
+
 // MARK: - Reserved for Cloud Functions
 router.post('/updateConversation', function(req, res) {
     console.log(req.body);

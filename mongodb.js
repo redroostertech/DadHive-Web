@@ -58,3 +58,33 @@ module.exports.convoscol = function returnMongoUserGeoDB(callback) {
     var collection = db.collection('conversations');
     callback(collection);
 }
+
+module.exports.postscol = function returnMongoUserGeoDB(callback) {
+    var db = moClient.db(configs.mongoid);
+    var collection = db.collection('posts');
+    callback(collection);
+}
+
+module.exports.categoriescol = function returnMongoUserGeoDB(callback) {
+    var db = moClient.db(configs.mongoid);
+    var collection = db.collection('categories');
+    callback(collection);
+}
+
+module.exports.engagementscol = function returnMongoUserGeoDB(callback) {
+    var db = moClient.db(configs.mongoid);
+    var collection = db.collection('engagements');
+    callback(collection);
+}
+
+module.exports.likesscol = function returnMongoUserGeoDB(callback) {
+    var db = moClient.db(configs.mongoid);
+    var collection = db.collection('likes');
+    callback(collection);
+}
+
+module.exports.notificationscol = function returnMongoUserGeoDB(callback) {
+    var db = moClient.db(configs.mongoid);
+    var collection = db.collection('notifications');
+    callback(collection);
+}

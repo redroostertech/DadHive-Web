@@ -155,6 +155,27 @@ app.get('/home', function(req, res) {
     }
 });
 
+app.get('/privacy', function(req, res) {
+    
+    let session = req.DadHiveiwo3ihn2o3in2goi3bnoi;
+    let sessionCheckValue = !(_.isEmpty(session)) && (session !== null || typeof session !== 'undefined')
+
+    if (sessionCheckValue) {
+        res.redirect('/home');
+    } else {
+        res.status('200').render('privacy', {
+            "message" : "Test GET request.",
+            "page" : {
+                "title": "DadHive",
+                "session": {
+                    "isSessionActive": sessionCheckValue,
+                    "data": req.DadHiveiwo3ihn2o3in2goi3bnoi
+                }
+            }
+        });
+    }
+});
+
 // app.get('/listings', function(req, res) {
     
 //     let session = req.DadHiveiwo3ihn2o3in2goi3bnoi;
@@ -176,16 +197,24 @@ app.get('/home', function(req, res) {
 //     }
 // });
 
-app.get('/privacy', function(req, res) {
-    res.json({
-        "text" : "Privacy Policy"
-    })
-});
+app.get('/terms', function(req, res) {
+    let session = req.DadHiveiwo3ihn2o3in2goi3bnoi;
+    let sessionCheckValue = !(_.isEmpty(session)) && (session !== null || typeof session !== 'undefined')
 
-app.get('/tos', function(req, res) {
-    res.json({
-        "text" : "Terms of Service"
-    })
+    if (sessionCheckValue) {
+        res.redirect('/home');
+    } else {
+        res.status('200').render('terms', {
+            "message" : "Test GET request.",
+            "page" : {
+                "title": "DadHive",
+                "session": {
+                    "isSessionActive": sessionCheckValue,
+                    "data": req.DadHiveiwo3ihn2o3in2goi3bnoi
+                }
+            }
+        });
+    }
 });
 
 app.get('/submitquestion', function(req, res){
