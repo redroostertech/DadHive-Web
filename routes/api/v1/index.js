@@ -13,7 +13,7 @@ const middleware                        = require('../../../middleware');
 const dadhiveFunctions                  = require('../../functions/index');
 
 var oneDay = process.env.oneDay
-var basePublicPath = process.env.basePublicPath
+var basePublicPath = path.join(__dirname, '/public/')
 var sessionCookieName = process.env.sessionCookieName
 var sessionCookieSecret = process.env.sessionCookieSecret
 var sessionDuration = process.env.sessionDuration
