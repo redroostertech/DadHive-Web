@@ -4015,6 +4015,45 @@ module.exports = {
             }
         });
     },
+
+    requestProfileDeletion: function(req, res) {
+        main.nodemailer(function(transporter) {
+            var error;
+            transporter.sendMail({
+                from: "thedadhive@gmail.com",
+                to: "info@redroostertec.com",
+                subject: "Delete User: " + req.body.senderEmail,
+                html: '<b>Hello</b><br>' + req.body.senderEmail + ' would like to delete their account. Request was made on ' + Date() + '.'
+            }, function(err, response) {
+                console.log(response);
+                console.log(error);
+                error = err
+            });
+            if (typeof error === 'undefined' || error === null) {
+                res.status(200).json({
+                    "status": 200,
+                    "success": {
+                            "result" : true, 
+                            "message" : "Email was sent." 
+                    },
+                    "data": req.body,
+                    "error": null
+                });
+                transporter.close();
+            } else {
+                res.status(200).json({
+                    "status": 200,
+                    "success": {
+                            "result" : false, 
+                            "message" : "Email was not sent." 
+                    },
+                    "data": req.body,
+                    "error": genericFailure
+                });
+                transporter.close();
+            }
+        });
+    },
     
     // END MONGODB FUNCTIONS
     
