@@ -18,8 +18,8 @@ module.exports = {
     transporterClientSecret: 'cDOqXWb93FojAXok0ODdSqh2',
     transporterRefreshToken: '1/humTDmtJl9G9aDM55K8QX78VkRsZ2fuH5wRDl7kfASQ',
     
-    mongoUrl: 'mongodb://dadhive-ad:'+encodeURIComponent('Z@r@rox6')+'@dadhive-cluster-sm-shard-00-00-1io7q.mongodb.net:27017,dadhive-cluster-sm-shard-00-01-1io7q.mongodb.net:27017,dadhive-cluster-sm-shard-00-02-1io7q.mongodb.net:27017/test?ssl=true&replicaSet=DadHive-Cluster-sm-shard-0&authSource=admin&retryWrites=true/dadhive-main-20193f0912h309',
-    mongoid: 'dadhive-main-20193f0912h309',
+    mongoUrl: 'mongodb://dadhive-ad:'+encodeURIComponent('Z@r@rox6')+'@dadhive-cluster-sm-shard-00-00-1io7q.mongodb.net:27017,dadhive-cluster-sm-shard-00-01-1io7q.mongodb.net:27017,dadhive-cluster-sm-shard-00-02-1io7q.mongodb.net:27017/test?ssl=true&replicaSet=DadHive-Cluster-sm-shard-0&authSource=admin&retryWrites=true/dadhive-prod',
+    mongoid: 'dadhive-prod',
 
     jwtsecret: 'wjiofn349w84h93w8hg4nilrwubg4p983h402pqh',
     jwtsecretLimit: 86400000,
