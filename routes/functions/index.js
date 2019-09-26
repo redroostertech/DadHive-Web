@@ -20,6 +20,20 @@ var kConversations = 'conversations';
 var kMatches = 'matches';
 var kMapItems = 'map-items';
 
+var firstoragebucket = process.env.firstoragebucket
+var jwtsecret = process.env.jwtsecret
+var jwtsecretLimit = process.env.jwtsecretLimit
+var jwtrefresh = process.env.jwtrefresh
+var jwtrefreshLimit = process.env.jwtrefreshLimit
+var basePublicPath = path.join(__dirname, '/public/')
+var baseRoutes = path.join(__dirname, '/routes/')
+var sessionDuration = process.env.sessionDuration
+var activeDuration = process.env.activeDuration
+var transporterClientId = process.env.transporterClientId
+var transporterClientSecret = process.env.transporterClientSecret
+var transporterRefreshToken = process.env.transporterRefreshToken
+var timeout = process.env.timeout
+
 function validateTwilioResponse (message, res) {
     console.log(message);
     if (message.sid === null) {
@@ -380,7 +394,7 @@ function addMongoDB(data, callback) {
 module.exports = {
 
     createPublicFileURL: function (storageName) {
-        return `http://storage.googleapis.com/${main.configs.firebaseStorageBucket}/${encodeURIComponent(storageName)}`;
+        return `http://storage.googleapis.com/${firstoragebucket}/${encodeURIComponent(storageName)}`;
     },
 
     sendResponse: function(code, error, success, data, res) {
@@ -405,18 +419,18 @@ module.exports = {
                             {
                                 username: uid
                             },
-                            configs.secret,
+                            jwtsecret,
                             { 
-                                expiresIn: configs.secretLimit
+                                expiresIn: jwtsecretLimit
                             }
                         );
                         let refreshToken = jwt.sign(
                             {
                                 username: uid
                             },
-                            configs.refresh,
+                            jwtrefresh,
                             { 
-                                expiresIn: configs.refreshLimit
+                                expiresIn: jwtrefreshLimit
                             }
                         );
                         auth.signOut().then(function() {
@@ -464,7 +478,7 @@ module.exports = {
                                 "error": err
                             });
 
-                            jwt.verify(result.refreshToken, configs.refresh, (err, decoded) => {
+                            jwt.verify(result.refreshToken, jwtrefresh, (err, decoded) => {
                                 if (err) {
                                     console.log("Refresh token is not active.");
                                     console.log(err);
@@ -472,18 +486,18 @@ module.exports = {
                                         {
                                             username: uid
                                         },
-                                        configs.secret,
+                                        jwtsecret,
                                         { 
-                                            expiresIn: configs.secretLimit
+                                            expiresIn: jwtsecretLimit
                                         }
                                     );
                                     let refreshToken = jwt.sign(
                                         {
                                             username: uid
                                         },
-                                        configs.refresh,
+                                        jwtrefresh,
                                         { 
-                                            expiresIn: configs.refreshLimit
+                                            expiresIn: jwtrefreshLimit
                                         }
                                     );
                                     main.mongodb.usergeo(function(collection) {
