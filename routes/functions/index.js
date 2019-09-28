@@ -20,6 +20,12 @@ var kConversations = 'conversations';
 var kMatches = 'matches';
 var kMapItems = 'map-items';
 
+var jwtrefreshLimit = process.env.jwtrefreshLimit || configs.jwtrefreshLimit;
+var jwtrefresh = process.env.jwtrefresh || configs.jwtrefresh;
+var jwtsecretLimit = process.env.jwtsecretLimit || configs.jwtsecretLimit;
+var jwtsecret = process.env.jwtsecret || configs.jwtsecret;
+var firstoragebucket = process.env.firstoragebucket || configs.firstoragebucket;
+
 function validateTwilioResponse (message, res) {
     console.log(message);
     if (message.sid === null) {
@@ -380,7 +386,7 @@ function addMongoDB(data, callback) {
 module.exports = {
 
     createPublicFileURL: function (storageName) {
-        return `http://storage.googleapis.com/${main.configs.firebaseStorageBucket}/${encodeURIComponent(storageName)}`;
+        return `http://storage.googleapis.com/${firstoragebucket}/${encodeURIComponent(storageName)}`;
     },
 
     sendResponse: function(code, error, success, data, res) {
@@ -405,18 +411,18 @@ module.exports = {
                             {
                                 username: uid
                             },
-                            configs.secret,
+                            jwtsecret,
                             { 
-                                expiresIn: configs.secretLimit
+                                expiresIn: jwtsecretLimit
                             }
                         );
                         let refreshToken = jwt.sign(
                             {
                                 username: uid
                             },
-                            configs.refresh,
+                            jwtrefresh,
                             { 
-                                expiresIn: configs.refreshLimit
+                                expiresIn: jwtrefreshLimit
                             }
                         );
                         auth.signOut().then(function() {
@@ -464,7 +470,7 @@ module.exports = {
                                 "error": err
                             });
 
-                            jwt.verify(result.refreshToken, configs.refresh, (err, decoded) => {
+                            jwt.verify(result.refreshToken, jwtrefresh, (err, decoded) => {
                                 if (err) {
                                     console.log("Refresh token is not active.");
                                     console.log(err);
@@ -472,18 +478,18 @@ module.exports = {
                                         {
                                             username: uid
                                         },
-                                        configs.secret,
+                                        jwtsecret,
                                         { 
-                                            expiresIn: configs.secretLimit
+                                            expiresIn: jwtsecretLimit
                                         }
                                     );
                                     let refreshToken = jwt.sign(
                                         {
                                             username: uid
                                         },
-                                        configs.refresh,
+                                        jwtrefresh,
                                         { 
-                                            expiresIn: configs.refreshLimit
+                                            expiresIn: jwtrefreshLimit
                                         }
                                     );
                                     main.mongodb.usergeo(function(collection) {
@@ -4012,6 +4018,45 @@ module.exports = {
                     "data": { },
                     "error": err
                 });
+            }
+        });
+    },
+
+    requestProfileDeletion: function(req, res) {
+        main.nodemailer(function(transporter) {
+            var error;
+            transporter.sendMail({
+                from: "thedadhive@gmail.com",
+                to: "info@redroostertec.com",
+                subject: "Delete User: " + req.body.senderEmail,
+                html: '<b>Hello</b><br>' + req.body.senderEmail + ' with an ID of ' + req.body.senderId + ' would like to delete their account. Request was made on ' + Date() + '.'
+            }, function(err, response) {
+                console.log(response);
+                console.log(error);
+                error = err
+            });
+            if (typeof error === 'undefined' || error === null) {
+                res.status(200).json({
+                    "status": 200,
+                    "success": {
+                            "result" : true, 
+                            "message" : "Email was sent." 
+                    },
+                    "data": req.body,
+                    "error": null
+                });
+                transporter.close();
+            } else {
+                res.status(200).json({
+                    "status": 200,
+                    "success": {
+                            "result" : false, 
+                            "message" : "Email was not sent." 
+                    },
+                    "data": req.body,
+                    "error": genericFailure
+                });
+                transporter.close();
             }
         });
     },

@@ -242,6 +242,11 @@ router.post('/unblockUser', function(req, res) {
     dadhiveFunctions.unblockUserMongoDB(req, res);
 });
 
+router.post('/requestForDelete', function(req, res) {
+    console.log(req.body);
+    dadhiveFunctions.requestProfileDeletion(req, res);
+});
+
 // MARK: - Reserved for Cloud Functions
 router.post('/updateConversation', function(req, res) {
     console.log(req.body);
