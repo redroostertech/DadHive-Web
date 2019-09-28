@@ -27,7 +27,7 @@ module.exports = {
     jwtrefreshLimit: 1814400000,
     
     nodemailusr: "thedadhive@gmail.com",
-    nodemailpass: "Kountdown123",
+    nodemailpass: "Kountdown_199120101",
     nodemailerclientid: "582457802779-jse8ejpv5llk4s4qd8lol4uo3rbdj3o6.apps.googleusercontent.com",
     nodemailerclientsecret: "_J64jVg1N-B-ixi0Y7sS0Ney",
     nodemailerclienttoken: "1/Pr7qllTm6f88K0xTmFmyriECjPVhieQzDh_SeXGTXCIEc766NB--peL2RgDBeZDS",
