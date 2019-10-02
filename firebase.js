@@ -3,6 +3,7 @@
 var firebase            = require('firebase');
 var admin               = require('firebase-admin');
 var configs             = require('./configs');
+var FCM                 = require('fcm-node');
 const { Storage }         = require('@google-cloud/storage');
 const { GeoCollectionReference, GeoFirestore, GeoQuery, GeoQuerySnapshot } = require('geofirestore');
 
@@ -30,6 +31,7 @@ var firbaseStorage;
 var firebaseFirestoreDB; 
 var firebaseRealtimeDB;
 var firebaseGeo; 
+var fcm;
 
 var serviceAccount = require(firstoragefilename);  //  MARK:- Uncomment and provide url to service account .json file.
 var settings = { timestampsInSnapshots: true };
@@ -94,6 +96,11 @@ function generateGeopoint(lat, long, callback) {
     })
 }
 
+function setupFCM(callback) {
+    fcm = new FCM(serviceAccount);
+    callback();
+}
+
 module.exports.setup = function firebaseSetup() {
     console.log('Setting up Firebase');
     setupFirebaseApp(function() {
@@ -113,6 +120,9 @@ module.exports.setup = function firebaseSetup() {
     });
     setupGeoFireClass(function() {
         console.log('Completed setting up base geoFire object');
+    });
+    setupFCM(function() {
+        console.log('Completed setting up FCM object');
     });
 };
 module.exports.firebase_main = function returnFirebaseMainObject(callback) {
@@ -138,4 +148,7 @@ module.exports.generate_geopoint = function generate_Geopoint(lat, long, callbac
     generateGeopoint(lat, long, function(point) {
         callback(point);
     })
+}
+module.exports.fcm = function setupFCM(callback) {
+    callback(fcm);
 }

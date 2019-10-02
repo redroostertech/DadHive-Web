@@ -1751,14 +1751,52 @@ module.exports = {
 
     editUserMongoDB: function(req, res) {
 
-        if (req.body.type == "notifications") {
+        if (req.body.type == "deviceId") {
             main.mongodb.usergeo(function(collection) {
                 collection.updateOne(
                     {
                         uid: req.body.userId
                     },{
                         $set: {    
-                            notifications: req.body.value
+                            deviceId: req.body.value
+                        }
+                    },{
+                        multi: true,
+                    }
+                , function(err, result) {
+                    if (err) return res.status(200).json({
+                        "status": 200,
+                        "success": { "result" : false, "message" : "There was an error" },
+                        "data": null,
+                        "error": err
+                    });
+                    if (!result) return res.status(200).json({
+                        "status": 200,
+                        "success": { "result" : false, "message" : "User was not updated." },
+                        "data": null,
+                        "error": err
+                    });
+        
+                    res.status(200).json({
+                        "status": 200,
+                        "success": { "result" : true, "message" : "User was updated" },
+                        "data": req.body,
+                        "error": err
+                    });
+                });
+            });
+        }
+
+        if (req.body.type == "notifications") {
+            console.log("Notifications value");
+            console.log(req.body.value);
+            main.mongodb.usergeo(function(collection) {
+                collection.updateOne(
+                    {
+                        uid: req.body.userId
+                    },{
+                        $set: {    
+                            notifications: req.body.value == 1 ? true: false
                         }
                     },{
                         multi: true,
@@ -3318,6 +3356,8 @@ module.exports = {
                 "error": err
             });
 
+            sendNotification(createNotificationObject(req.body.senderId, req.body.ownerId, req.body.type, req.body.comment, req.body.post));
+
             res.status(200).json({
                 "status": 200,
                 "success": { 
@@ -4061,6 +4101,44 @@ module.exports = {
         });
     },
     
+    deleteAllMongoEngagementElements: function(req, res) {
+        main.mongodb.engagementscol(function(collection) {
+            collection.deleteMany(function(error, result) {
+                var data = {
+                    "count": 0,
+                    "results": result,
+                }
+                var success;
+                if (!error) {
+                    success = genericSuccess;
+                } else {
+                    success = genericFailure;
+                }
+                handleJSONResponse(200, error, success, data, res);
+            });
+        });
+    },
+
+    deleteAllMongoNotificationElements: function(req, res) {
+        main.mongodb.notificationscol(function(collection) {
+            collection.deleteMany(function(error, result) {
+                var data = {
+                    "count": 0,
+                    "results": result,
+                }
+                var success;
+                if (!error) {
+                    success = genericSuccess;
+                } else {
+                    success = genericFailure;
+                }
+                handleJSONResponse(200, error, success, data, res);
+            });
+        });
+    },
+
+
+
     // END MONGODB FUNCTIONS
     
     getUsers: function(req, res) {
@@ -4722,6 +4800,7 @@ function createEmptyUserObject(email, name, uid, type, kidsCount, maritalStatus,
         email: email,
         name: name,
         uid: uid,
+        deviceId: null,
         createdAt: new Date(),
         lastLogin: new Date(),
         type: type,
@@ -4891,6 +4970,43 @@ function createNotificationObject(senderId, ownerId, type, comment, post) {
     return data
 }
 
+function sendNotification(notificationObject) {
+    main.mongodb.usergeo(function(collection) {
+        collection.findOne(
+            {
+                uid: notificationObject.ownerId
+            }
+        ).toArray(function(err, result) {
+            if (err) return console.log("No user available");
+
+            if (!result) return console.log("No user available");
+
+            const user = generateUserModel(result[0]);
+            var message = {
+                to: user.settings.deviceId,
+                collapse_key: 'engagementMessage',
+
+                notification: {
+                    title: 'Message from DadHive',
+                    body: 'Someone interacted with your activity! Check it out now!'
+                },
+
+                data: notificationObject
+            }
+
+            main.firebase.fcm(function(fcm) {
+                fcm.send(message, function(err, response) {
+                    if (err) {
+                        console.log("Something went wrong trying to send message");
+                    } else {
+                        console.log("Successfully sent with response: ", response);
+                    }
+                });
+            })
+        }); 
+    });    
+}
+
 //  MARK:- Model Generators
 function generateUserModel(doc) {
     var data = { 
@@ -4908,6 +5024,7 @@ function generateUserModel(doc) {
         dob: doc.dob,
         currentPage: doc.currentPage,
         settings: {
+            deviceId: doc.deviceId,
             preferredCurrency: doc.preferredCurrency,
             notifications : doc.notifications,
             location: {

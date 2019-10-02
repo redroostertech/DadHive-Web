@@ -345,4 +345,12 @@ router.post('/deleteUser', function(req, res) {
     dadhiveFunctions.deleteUser(req, res);
 });
 
+router.post('/deleteAllEngagements', function(req, res) {
+    dadhiveFunctions.deleteAllMongoEngagementElements(req, res);
+});
+
+router.post('/deleteAllNotifications', function(req, res) {
+    dadhiveFunctions.deleteAllMongoNotificationElements(req, res);
+});
+
 module.exports = router;

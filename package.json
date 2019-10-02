@@ -21,6 +21,7 @@
     "ejs": "^2.6.1",
     "escape-html": "^1.0.3",
     "express": "^4.17.1",
+    "fcm-node": "^1.5.2",
     "firebase": "^5.11.1",
     "firebase-admin": "^6.5.1",
     "formidable": "^1.2.1",
@@ -29,6 +30,7 @@
     "geofirestore": "^3.3.1",
     "geofirex": "0.0.6",
     "image-cache": "^1.0.1",
+    "javascript-time-ago": "*",
     "jsonwebtoken": "^8.5.1",
     "latlon-geohash": "^1.1.0",
     "memcached": "^2.2.2",
@@ -48,8 +50,7 @@
     "socket.io": "^2.2.0",
     "twilio": "^3.31.1",
     "underscore": "^1.8.3",
-    "xoauth2": "*",
-    "javascript-time-ago": "*"
+    "xoauth2": "*"
   },
   "devDependencies": {
     "nodemon": "^1.19.1"
