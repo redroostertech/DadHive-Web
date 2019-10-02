@@ -251,6 +251,52 @@ router.post('/updateConversation', function(req, res) {
     dadhiveFunctions.updateConversationMongoDB(req, res);
 });
 
+// MARK: - Reserved for ADMIN
+router.get('/getUsers', function(req, res) {
+    console.log(req.body);
+    dadhiveFunctions.getUsersMongoDB(req, res);
+});
+
+router.get('/deleteAllGeos', function(req, res) {
+    console.log(req.body);
+    dadhiveFunctions.deleteAllMongoUserGeoElements(req, res);
+});
+
+router.post('/deleteGeo', function(req, res) {
+    console.log(req.body);
+    dadhiveFunctions.deleteGeo(req, res);
+});
+
+router.post('/deleteGeosBut', function(req, res) {
+    req.body.ids = ["5cf87bf7178341c6ca36ca92", "5cf87f3c178341c6ca37481b"];
+    dadhiveFunctions.deleteGeosBut(req, res);
+})
+
+router.get('/deleteAllActions', function(req, res) {
+    console.log(req.body);
+    dadhiveFunctions.deleteAllMongoActionElements(req, res);
+});
+
+router.post('/deleteAction', function(req, res) {
+    console.log(req.body);
+});
+
+router.post('/deleteUser', function(req, res) {
+    dadhiveFunctions.deleteUser(req, res);
+});
+
+router.post('/deleteAllEngagements', function(req, res) {
+    dadhiveFunctions.deleteAllMongoEngagementElements(req, res);
+});
+
+router.post('/deleteAllNotifications', function(req, res) {
+    dadhiveFunctions.deleteAllMongoNotificationElements(req, res);
+});
+
+router.post('/sendPushNotifications', function(req, res) {
+    dadhiveFunctions.sendPushNotifications(req, res);
+});
+
 // MARK: - Not used
 router.post('/uploadPhoto', function(req, res) {
 
@@ -307,48 +353,6 @@ router.post('/addToMap', function(req, res) {
 router.post('/getMessages', function(req, res) {
     console.log(req.body);
     dadhiveFunctions.getMessagesInConversation(req.body.conversationId, res);
-});
-
-// MARK: - Reserved for ADMIN
-router.get('/getUsers', function(req, res) {
-    console.log(req.body);
-    dadhiveFunctions.getUsersMongoDB(req, res);
-});
-
-router.get('/deleteAllGeos', function(req, res) {
-    console.log(req.body);
-    dadhiveFunctions.deleteAllMongoUserGeoElements(req, res);
-});
-
-router.post('/deleteGeo', function(req, res) {
-    console.log(req.body);
-    dadhiveFunctions.deleteGeo(req, res);
-});
-
-router.post('/deleteGeosBut', function(req, res) {
-    req.body.ids = ["5cf87bf7178341c6ca36ca92", "5cf87f3c178341c6ca37481b"];
-    dadhiveFunctions.deleteGeosBut(req, res);
-})
-
-router.get('/deleteAllActions', function(req, res) {
-    console.log(req.body);
-    dadhiveFunctions.deleteAllMongoActionElements(req, res);
-});
-
-router.post('/deleteAction', function(req, res) {
-    console.log(req.body);
-});
-
-router.post('/deleteUser', function(req, res) {
-    dadhiveFunctions.deleteUser(req, res);
-});
-
-router.post('/deleteAllEngagements', function(req, res) {
-    dadhiveFunctions.deleteAllMongoEngagementElements(req, res);
-});
-
-router.post('/deleteAllNotifications', function(req, res) {
-    dadhiveFunctions.deleteAllMongoNotificationElements(req, res);
 });
 
 module.exports = router;
