@@ -3356,6 +3356,8 @@ module.exports = {
                 "error": err
             });
 
+            sendNotification(createNotificationObject(req.body.senderId, req.body.ownerId, req.body.type, req.body.comment, req.body.post));
+
             res.status(200).json({
                 "status": 200,
                 "success": { 
@@ -4966,6 +4968,43 @@ function createNotificationObject(senderId, ownerId, type, comment, post) {
         comment: comment,
     }
     return data
+}
+
+function sendNotification(notificationObject) {
+    main.mongodb.usergeo(function(collection) {
+        collection.findOne(
+            {
+                uid: notificationObject.ownerId
+            }
+        ).toArray(function(err, result) {
+            if (err) return console.log("No user available");
+
+            if (!result) return console.log("No user available");
+
+            const user = generateUserModel(result[0]);
+            var message = {
+                to: user.settings.deviceId,
+                collapse_key: 'engagementMessage',
+
+                notification: {
+                    title: 'Message from DadHive',
+                    body: 'Someone interacted with your activity! Check it out now!'
+                },
+
+                data: notificationObject
+            }
+
+            main.firebase.fcm(function(fcm) {
+                fcm.send(message, function(err, response) {
+                    if (err) {
+                        console.log("Something went wrong trying to send message");
+                    } else {
+                        console.log("Successfully sent with response: ", response);
+                    }
+                });
+            })
+        }); 
+    });    
 }
 
 //  MARK:- Model Generators
