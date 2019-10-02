@@ -14,13 +14,15 @@ require("firebase/functions");
 require("firebase/storage");
 require("firebase/firestore");
 
-var firapikey = process.env.firapikey || configs.firapikey;
-var firauthdomain = process.env.firauthdomain || configs.firauthdomain;
-var firdburl = process.env.firdburl || configs.firdburl;
-var firprojectid = process.env.firprojectid || configs.firprojectid;
-var firstoragebucket = process.env.firstoragebucket || configs.firstoragebucket;
-var firmessagingsenderid = process.env.firmessagingsenderid || configs.firmessagingsenderid;
-var firstoragefilename = process.env.firstoragefilename || configs.firstoragefilename;
+var firapikey = process.env.firapikey
+var firauthdomain = process.env.firauthdomain
+var firdburl = process.env.firdburl
+var firprojectid = process.env.firprojectid
+var firstoragebucket = process.env.firstoragebucket
+var firmessagingsenderid = process.env.firmessagingsenderid
+var firstoragefilename = process.env.firstoragefilename
+
+var serviceAccount      = require(firstoragefilename);  //  MARK:- Uncomment and provide url to service account .json file.
 
 //  MARK:- Setup Firebase App
 var firebaseObj;
@@ -149,4 +151,3 @@ module.exports.generate_geopoint = function generate_Geopoint(lat, long, callbac
 }
 module.exports.fcm = function setupFCM(callback) {
     callback(fcm);
-}
