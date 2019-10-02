@@ -1762,7 +1762,6 @@ module.exports = {
                         }
                     },{
                         multi: true,
-                        upsert: true
                     }
                 , function(err, result) {
                     if (err) return res.status(200).json({
@@ -5010,7 +5009,6 @@ function sendNotification(notificationObject, res) {
             const user = generateUserModel(result);
             var message = {
                 to: user.settings.deviceId,
-
                 notification: {
                     title: 'Message from DadHive',
                     body: 'Someone interacted with your activity! Check it out now!'

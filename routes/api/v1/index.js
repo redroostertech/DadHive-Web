@@ -1,4 +1,5 @@
 const express                           = require('express');
+const path                              = require('path');
 const router                            = express.Router();
 const main                              = require('../../../app');
 const bodyParser                        = require('body-parser');
@@ -13,21 +14,23 @@ const middleware                        = require('../../../middleware');
 const dadhiveFunctions                  = require('../../functions/index');
 
 var oneDay = process.env.oneDay || configs.oneDay;
+var basePublicPath = path.join(__dirname, '/public/')
 var sessionCookieName = process.env.sessionCookieName || configs.sessionCookieName;
 var sessionCookieSecret = process.env.sessionCookieSecret || configs.sessionCookieSecret;
 var sessionDuration = process.env.sessionDuration || configs.sessionDuration;
 var activeDuration = process.env.activeDuration || configs.activeDuration;
 
-router.use(express.static(configs.basePublicPath, {
-    maxage: oneDay * 21
+
+router.use(express.static(basePublicPath, {
+    maxage: Number(oneDay) * 21
 }));
 router.use(bodyParser.urlencoded({extended:true}));
 router.use(bodyParser.json());
 router.use(session({
     cookieName: sessionCookieName,
     secret: sessionCookieSecret,
-    duration: sessionDuration,
-    activeDuration: activeDuration,
+    duration: Number(sessionDuration),
+    activeDuration: Number(activeDuration),
 }));
 
 router.post('/test', middleware.checkToken, function(req, res) {
@@ -353,6 +356,48 @@ router.post('/addToMap', function(req, res) {
 router.post('/getMessages', function(req, res) {
     console.log(req.body);
     dadhiveFunctions.getMessagesInConversation(req.body.conversationId, res);
+});
+
+// MARK: - Reserved for ADMIN
+router.get('/getUsers', function(req, res) {
+    console.log(req.body);
+    dadhiveFunctions.getUsersMongoDB(req, res);
+});
+
+router.get('/deleteAllGeos', function(req, res) {
+    console.log(req.body);
+    dadhiveFunctions.deleteAllMongoUserGeoElements(req, res);
+});
+
+router.post('/deleteGeo', function(req, res) {
+    console.log(req.body);
+    dadhiveFunctions.deleteGeo(req, res);
+});
+
+router.post('/deleteGeosBut', function(req, res) {
+    req.body.ids = ["5cf87bf7178341c6ca36ca92", "5cf87f3c178341c6ca37481b"];
+    dadhiveFunctions.deleteGeosBut(req, res);
+})
+
+router.get('/deleteAllActions', function(req, res) {
+    console.log(req.body);
+    dadhiveFunctions.deleteAllMongoActionElements(req, res);
+});
+
+router.post('/deleteAction', function(req, res) {
+    console.log(req.body);
+});
+
+router.post('/deleteUser', function(req, res) {
+    dadhiveFunctions.deleteUser(req, res);
+});
+
+router.post('/deleteAllEngagements', function(req, res) {
+    dadhiveFunctions.deleteAllMongoEngagementElements(req, res);
+});
+
+router.post('/deleteAllNotifications', function(req, res) {
+    dadhiveFunctions.deleteAllMongoNotificationElements(req, res);
 });
 
 module.exports = router;

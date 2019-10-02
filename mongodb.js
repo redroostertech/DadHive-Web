@@ -6,6 +6,7 @@ const configs           = require('./configs');
 //  MARK:- Setup MongoDB App
 var mongoUrl = process.env.mongoUrl || configs.mongoUrl;
 var mongoid = process.env.mongoid || configs.mongoid;
+
 var moClient;
 
 function setupMongoClient(callback) {

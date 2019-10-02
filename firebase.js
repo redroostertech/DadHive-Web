@@ -22,6 +22,8 @@ var firstoragebucket = process.env.firstoragebucket || configs.firstoragebucket;
 var firmessagingsenderid = process.env.firmessagingsenderid || configs.firmessagingsenderid;
 var firstoragefilename = process.env.firstoragefilename || configs.firstoragefilename;
 
+var serviceAccount      = require(firstoragefilename);  //  MARK:- Uncomment and provide url to service account .json file.
+
 //  MARK:- Setup Firebase App
 var firebaseObj;
 var firebaseAdmin;
