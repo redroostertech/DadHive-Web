@@ -20,11 +20,11 @@ var kConversations = 'conversations';
 var kMatches = 'matches';
 var kMapItems = 'map-items';
 
-var jwtrefreshLimit = process.env.jwtrefreshLimit;
-var jwtrefresh = process.env.jwtrefresh;
-var jwtsecretLimit = process.env.jwtsecretLimit;
-var jwtsecret = process.env.jwtsecret;
-var firstoragebucket = process.env.firstoragebucket;
+var jwtrefreshLimit = process.env.jwtrefreshLimit || configs.jwtrefreshLimit;
+var jwtrefresh = process.env.jwtrefresh || configs.jwtrefresh;
+var jwtsecretLimit = process.env.jwtsecretLimit || configs.jwtsecretLimit;
+var jwtsecret = process.env.jwtsecret || configs.jwtsecret;
+var firstoragebucket = process.env.firstoragebucket || configs.firstoragebucket;
 
 function validateTwilioResponse (message, res) {
     console.log(message);
@@ -3322,6 +3322,10 @@ module.exports = {
         });
     },
 
+    sendPushNotifications: function(req, res) {
+        sendNotification(createNotificationObject(req.body.senderId, req.body.ownerId, req.body.type, req.body.comment, req.body.post), res);
+    },
+
     addLikeMongoDB: function(req, res) {
         async.parallel({
             addLike: function(callback) {
@@ -4970,40 +4974,90 @@ function createNotificationObject(senderId, ownerId, type, comment, post) {
     return data
 }
 
-function sendNotification(notificationObject) {
+function sendNotification(notificationObject, res) {
     main.mongodb.usergeo(function(collection) {
         collection.findOne(
-            {
-                uid: notificationObject.ownerId
+        {
+            uid: notificationObject.owner
+        }, function(err, result) {
+            if (err) {
+                if (!res) return console.log("No user available");
+                res.status(200).json({
+                    "status": 200,
+                    "success": { 
+                        "result" : true, 
+                        "message" : "Notification was not sent" 
+                    },
+                    "data": null,
+                    "error": err
+                });
+            } 
+
+            if (!result) {
+                if (!res) return console.log("No user available");
+                res.status(200).json({
+                    "status": 200,
+                    "success": { 
+                        "result" : true, 
+                        "message" : "Notification was not sent" 
+                    },
+                    "data": null,
+                    "error": err
+                });
             }
-        ).toArray(function(err, result) {
-            if (err) return console.log("No user available");
 
-            if (!result) return console.log("No user available");
-
-            const user = generateUserModel(result[0]);
+            const user = generateUserModel(result);
             var message = {
                 to: user.settings.deviceId,
-                collapse_key: 'engagementMessage',
-
                 notification: {
                     title: 'Message from DadHive',
                     body: 'Someone interacted with your activity! Check it out now!'
                 },
 
-                data: notificationObject
+                data: {
+                    id: String(notificationObject.id),
+                    createdAt: String(notificationObject.createdAt),
+                    updatedAt: String(notificationObject.updatedAt),
+                    senderId: String(notificationObject.senderId),
+                    owner: String(notificationObject.owner),
+                    post: String(notificationObject.post),
+                    type: String(notificationObject.type),
+                    comment: String(notificationObject.comment),
+                }
             }
 
             main.firebase.fcm(function(fcm) {
                 fcm.send(message, function(err, response) {
                     if (err) {
-                        console.log("Something went wrong trying to send message");
+                        if (!res) return console.log("Something went wrong trying to send message: ", response);
+                        res.status(200).json({
+                            "status": 200,
+                            "success": { 
+                                "result" : true, 
+                                "message" : "Notification was mpt sent" 
+                            },
+                            "data": {
+                                "notification": response
+                            },
+                            "error": err
+                        });
                     } else {
-                        console.log("Successfully sent with response: ", response);
+                        if (!res) return console.log("Successfully sent with response: ", response);
+                        res.status(200).json({
+                            "status": 200,
+                            "success": { 
+                                "result" : true, 
+                                "message" : "Notification was sent" 
+                            },
+                            "data": {
+                                "notification": response
+                            },
+                            "error": err
+                        });
                     }
                 });
             })
-        }); 
+        });
     });    
 }
 
