@@ -20,11 +20,11 @@ var kConversations = 'conversations';
 var kMatches = 'matches';
 var kMapItems = 'map-items';
 
-var jwtrefreshLimit = process.env.jwtrefreshLimit || configs.jwtrefreshLimit;
-var jwtrefresh = process.env.jwtrefresh || configs.jwtrefresh;
-var jwtsecretLimit = process.env.jwtsecretLimit || configs.jwtsecretLimit;
-var jwtsecret = process.env.jwtsecret || configs.jwtsecret;
-var firstoragebucket = process.env.firstoragebucket || configs.firstoragebucket;
+var jwtrefreshLimit = process.env.jwtrefreshLimit;
+var jwtrefresh = process.env.jwtrefresh;
+var jwtsecretLimit = process.env.jwtsecretLimit;
+var jwtsecret = process.env.jwtsecret;
+var firstoragebucket = process.env.firstoragebucket;
 
 function validateTwilioResponse (message, res) {
     console.log(message);

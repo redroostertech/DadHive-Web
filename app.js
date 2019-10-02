@@ -14,19 +14,19 @@ const middleware        = require('./middleware');
 const _                 = require('underscore');
 const jwt               = require('jsonwebtoken');
 
-var oneDay = process.env.oneDay || configs.oneDay;
-var port = process.env.PORT || configs.port;
-var nodemailerUsr = process.env.nodemailusr || configs.nodemailusr;
-var basePublicPath = process.env.basePublicPath || configs.basePublicPath;
-var baseRoutes = process.env.baseRoutes || configs.baseRoutes;
-var sessionCookieName = process.env.sessionCookieName || configs.sessionCookieName;
-var sessionCookieSecret = process.env.sessionCookieSecret || configs.sessionCookieSecret;
-var sessionDuration = process.env.sessionDuration || configs.sessionDuration;
-var activeDuration = process.env.activeDuration || configs.activeDuration;
-var transporterClientId = process.env.transporterClientId || configs.transporterClientId;
-var transporterClientSecret = process.env.transporterClientSecret || configs.transporterClientSecret;
-var transporterRefreshToken = process.env.transporterRefreshToken || configs.transporterRefreshToken;
-var timeout = process.env.timeout || configs.timeout;
+var oneDay = process.env.oneDay
+var port = process.env.PORT
+var nodemailerUsr = process.env.nodemailusr
+var basePublicPath = path.join(__dirname, '/public/')
+var baseRoutes = path.join(__dirname, '/routes/')
+var sessionCookieName = process.env.sessionCookieName
+var sessionCookieSecret = process.env.sessionCookieSecret
+var sessionDuration = process.env.sessionDuration
+var activeDuration = process.env.activeDuration
+var transporterClientId = process.env.transporterClientId
+var transporterClientSecret = process.env.transporterClientSecret
+var transporterRefreshToken = process.env.transporterRefreshToken
+var timeout = process.env.timeout
 
 var app = express();
 app.set('views', __dirname + '/views');
@@ -70,6 +70,10 @@ app.all('/assets/*', function(req, res) {
 app.all('/data/*', function(req, res) {
     res.sendStatus(404);
 });
+
+// app.get('/', function(req, res) {
+//     res.status('200').render('index');
+// });
 
 app.get('/', function(req, res) {
 
@@ -194,6 +198,10 @@ app.get('/terms', function(req, res) {
             }
         });
     }
+});
+
+app.get('/submitquestion', function(req, res){
+    res.status('200').render('submitquestion');
 });
 
 //  API

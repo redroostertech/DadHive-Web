@@ -1,4 +1,5 @@
 const express                           = require('express');
+const path                              = require('path');
 const router                            = express.Router();
 const main                              = require('../../../app');
 const bodyParser                        = require('body-parser');
@@ -12,22 +13,23 @@ const middleware                        = require('../../../middleware');
 //  Add projects below
 const dadhiveFunctions                  = require('../../functions/index');
 
-var oneDay = process.env.oneDay || configs.oneDay;
-var sessionCookieName = process.env.sessionCookieName || configs.sessionCookieName;
-var sessionCookieSecret = process.env.sessionCookieSecret || configs.sessionCookieSecret;
-var sessionDuration = process.env.sessionDuration || configs.sessionDuration;
-var activeDuration = process.env.activeDuration || configs.activeDuration;
+var oneDay = process.env.oneDay
+var basePublicPath = path.join(__dirname, '/public/')
+var sessionCookieName = process.env.sessionCookieName
+var sessionCookieSecret = process.env.sessionCookieSecret
+var sessionDuration = process.env.sessionDuration
+var activeDuration = process.env.activeDuration
 
-router.use(express.static(configs.basePublicPath, {
-    maxage: oneDay * 21
+router.use(express.static(basePublicPath, {
+    maxage: Number(oneDay) * 21
 }));
 router.use(bodyParser.urlencoded({extended:true}));
 router.use(bodyParser.json());
 router.use(session({
     cookieName: sessionCookieName,
     secret: sessionCookieSecret,
-    duration: sessionDuration,
-    activeDuration: activeDuration,
+    duration: Number(sessionDuration),
+    activeDuration: Number(activeDuration),
 }));
 
 router.post('/test', middleware.checkToken, function(req, res) {
