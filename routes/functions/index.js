@@ -5009,7 +5009,7 @@ function sendNotification(notificationObject, res) {
 
             const user = generateUserModel(result);
             var message = {
-                to: 'fPbo2Q7Euws:APA91bGpbI1bHhUfPoV8lTvWv0eb4uNV7mGlvOZW59qQe_M0ALP-XkW0r_DPQofOx8Z141a0YGDwrhTNAOJlhh8smeGIkzija84cj32dlEq1h5x_llaf_RiYD_yvYBVORx6nQ9AMmBQ-',
+                to: user.settings.deviceId,
 
                 notification: {
                     title: 'Message from DadHive',
