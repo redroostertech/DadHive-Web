@@ -151,3 +151,4 @@ module.exports.generate_geopoint = function generate_Geopoint(lat, long, callbac
 }
 module.exports.fcm = function setupFCM(callback) {
     callback(fcm);
+}
