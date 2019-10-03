@@ -13,12 +13,12 @@ const middleware                        = require('../../../middleware');
 //  Add projects below
 const dadhiveFunctions                  = require('../../functions/index');
 
-var oneDay = process.env.oneDay || configs.oneDay;
+var oneDay = process.env.oneDay
 var basePublicPath = path.join(__dirname, '/public/')
-var sessionCookieName = process.env.sessionCookieName || configs.sessionCookieName;
-var sessionCookieSecret = process.env.sessionCookieSecret || configs.sessionCookieSecret;
-var sessionDuration = process.env.sessionDuration || configs.sessionDuration;
-var activeDuration = process.env.activeDuration || configs.activeDuration;
+var sessionCookieName = process.env.sessionCookieName
+var sessionCookieSecret = process.env.sessionCookieSecret
+var sessionDuration = process.env.sessionDuration
+var activeDuration = process.env.activeDuration
 
 
 router.use(express.static(basePublicPath, {
