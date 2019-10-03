@@ -14,13 +14,13 @@ require("firebase/functions");
 require("firebase/storage");
 require("firebase/firestore");
 
-var firapikey = process.env.firapikey
-var firauthdomain = process.env.firauthdomain
-var firdburl = process.env.firdburl
-var firprojectid = process.env.firprojectid
-var firstoragebucket = process.env.firstoragebucket
-var firmessagingsenderid = process.env.firmessagingsenderid
-var firstoragefilename = process.env.firstoragefilename
+var firapikey = process.env.firapikey || configs.firapikey;
+var firauthdomain = process.env.firauthdomain || configs.firauthdomain;
+var firdburl = process.env.firdburl || configs.firdburl;
+var firprojectid = process.env.firprojectid || configs.firprojectid;
+var firstoragebucket = process.env.firstoragebucket || configs.firstoragebucket;
+var firmessagingsenderid = process.env.firmessagingsenderid || configs.firmessagingsenderid;
+var firstoragefilename = process.env.firstoragefilename || configs.firstoragefilename;
 
 var serviceAccount      = require(firstoragefilename);  //  MARK:- Uncomment and provide url to service account .json file.
 
@@ -128,7 +128,9 @@ module.exports.setup = function firebaseSetup() {
 module.exports.firebase_main = function returnFirebaseMainObject(callback) {
     callback(firebaseObj);
 }
-module.exports.firebase_admin = firebaseAdmin;
+module.exports.firebase_admin = function setupAdminFirebaseApp(callback) {
+    callback(firebaseAdmin);
+};
 module.exports.firebase_firestore_db = function setupFirestore(callback) {
     callback(firebaseFirestoreDB);
 }

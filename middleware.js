@@ -2,11 +2,11 @@ const jwt               = require('jsonwebtoken');
 const configs           = require('./configs');
 const _                 = require('underscore');
 
-var oneDay = process.env.oneDay
-var jwtsecret = process.env.jwtsecret
-var jwtsecretLimit = process.env.jwtsecretLimit
-var jwtrefresh = process.env.jwtrefresh
-var jwtrefreshLimit = process.env.jwtrefreshLimit
+var oneDay = process.env.oneDay || configs.oneDay;
+var jwtsecret = process.env.jwtsecret || configs.jwtsecret;
+var jwtsecretLimit = process.env.jwtsecretLimit || configs.jwtsecretLimit;
+var jwtrefresh = process.env.jwtrefresh || configs.jwtrefresh;
+var jwtrefreshLimit = process.env.jwtrefreshLimit || configs.jwtrefreshLimit;
 
 let isSessionActive = (req, res, next) => {
   let session = req.DadHiveiwo3ihn2o3in2goi3bnoi;
