@@ -128,7 +128,9 @@ module.exports.setup = function firebaseSetup() {
 module.exports.firebase_main = function returnFirebaseMainObject(callback) {
     callback(firebaseObj);
 }
-module.exports.firebase_admin = firebaseAdmin;
+module.exports.firebase_admin = function setupAdminFirebaseApp(callback) {
+    callback(firebaseAdmin);
+};
 module.exports.firebase_firestore_db = function setupFirestore(callback) {
     callback(firebaseFirestoreDB);
 }

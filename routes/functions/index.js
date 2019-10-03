@@ -5007,54 +5007,53 @@ function sendNotification(notificationObject, res) {
             }
 
             const user = generateUserModel(result);
-            var message = {
-                to: user.settings.deviceId,
+            var payload = {
                 notification: {
+                    badge: '1',
                     title: 'Message from DadHive',
-                    body: 'Someone interacted with your activity! Check it out now!'
-                },
-
-                data: {
-                    id: String(notificationObject.id),
-                    createdAt: String(notificationObject.createdAt),
-                    updatedAt: String(notificationObject.updatedAt),
-                    senderId: String(notificationObject.senderId),
-                    owner: String(notificationObject.owner),
-                    post: String(notificationObject.post),
-                    type: String(notificationObject.type),
-                    comment: String(notificationObject.comment),
+                    body: 'Someone interacted with your activity! Check it out now!',
                 }
+                
             }
 
-            main.firebase.fcm(function(fcm) {
-                fcm.send(message, function(err, response) {
+            var options = {
+                priority: 'high',
+                timeToLive: 60 * 60 * 24, // 1 day
+            }
+
+            main.firebase.firebase_admin(function(fcm) {
+                fcm.messaging().sendToDevice(user.settings.deviceId, payload, options).then(function(response) {
+                    // See the MessagingDevicesResponse reference documentation for
+                    // the contents of response.
+                    console.log('Successfully sent message:', response);
+                    if (!res) return console.log("Successfully sent with response: ", response);
+                    res.status(200).json({
+                        "status": 200,
+                        "success": { 
+                            "result" : true, 
+                            "message" : "Notification was sent" 
+                        },
+                        "data": {
+                            "notification": response
+                        },
+                        "error": err
+                    });
+                }).catch(function(error) {
+                    console.log('Error sending message:', error);
                     if (err) {
                         if (!res) return console.log("Something went wrong trying to send message: ", response);
                         res.status(200).json({
                             "status": 200,
                             "success": { 
-                                "result" : true, 
-                                "message" : "Notification was mpt sent" 
+                                "result" : false, 
+                                "message" : "Notification was not sent" 
                             },
                             "data": {
                                 "notification": response
                             },
-                            "error": err
+                            "error": error
                         });
-                    } else {
-                        if (!res) return console.log("Successfully sent with response: ", response);
-                        res.status(200).json({
-                            "status": 200,
-                            "success": { 
-                                "result" : true, 
-                                "message" : "Notification was sent" 
-                            },
-                            "data": {
-                                "notification": response
-                            },
-                            "error": err
-                        });
-                    }
+                    }        
                 });
             })
         });
