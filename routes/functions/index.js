@@ -4992,7 +4992,7 @@ function sendNotification(notificationObject, res) {
                     "error": err
                 });
             } 
-
+          
             if (!result) {
                 if (!res) return console.log("No user available");
                 res.status(200).json({
