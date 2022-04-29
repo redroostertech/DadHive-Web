@@ -16,7 +16,7 @@
     "@google-cloud/firestore": "0.17.0",
     "firebase-admin": "~7.0.0",
     "firebase-functions": "^2.3.0",
-    "async": "^2.6.2",
+    "async": "^2.6.4",
     "aws-sdk": "^2.471.0",
     "bcryptjs": "^2.4.3",
     "body-parser": "^1.19.0",
