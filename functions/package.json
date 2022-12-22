@@ -31,7 +31,7 @@
     "full-countries-cities": "0.0.8",
     "geofire": "^5.0.1",
     "image-cache": "^1.0.1",
-    "jsonwebtoken": "^8.5.1",
+    "jsonwebtoken": "^9.0.0",
     "latlon-geohash": "^1.1.0",
     "memcached": "^2.2.2",
     "memory-cache": "*",
